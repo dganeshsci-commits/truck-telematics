@@ -1,132 +1,112 @@
 /**
- * Main Telematics Application Router & Controller
- * Multi-Vehicle Dynamic Switching, Route Config, Add Driver/Vehicle & Modal Controllers
+ * AI Telematics Application Controller
+ * Handles Navigation, Views Switching, Multi-Vehicle State Binding,
+ * Dropdown Handlers for Drivers & Locations, and Centralized Alert Popup Modals.
  */
 
 class TelematicsApp {
   constructor() {
-    this.currentViewId = 'overview';
-    this.components = {};
-    this.alertsComponent = null;
+    this.currentView = 'overview';
+    this.currentData = null;
+    this.fleetData = [];
 
-    try {
-      if (window.AlertsComponent) {
-        this.alertsComponent = new window.AlertsComponent();
-      }
-    } catch(e) {
-      console.warn('AlertsComponent init warning:', e);
-    }
-
-    this.init();
-  }
-
-  getComponent(viewId) {
-    if (!this.components[viewId]) {
-      const classMap = {
-        overview: window.OverviewComponent,
-        dynamics: window.DynamicsComponent,
-        tilt: window.TiltComponent,
-        fuel: window.FuelComponent,
-        tpms: window.TPMSComponent,
-        cameras: window.CamerasComponent,
-        battery: window.BatteryComponent,
-        fleet: window.FleetComponent,
-        maintenance: window.MaintenanceComponent
-      };
-
-      const CompClass = classMap[viewId];
-      if (CompClass) {
-        try {
-          this.components[viewId] = new CompClass();
-        } catch (err) {
-          console.error(`Error instantiating component ${viewId}:`, err);
-        }
-      }
-    }
-    return this.components[viewId];
+    this.components = {
+      overview: new OverviewComponent(),
+      dynamics: new DynamicsComponent(),
+      tilt: new TiltComponent(),
+      fuel: new FuelComponent(),
+      tpms: new TPMSComponent(),
+      cameras: new CamerasComponent(),
+      battery: new BatteryComponent(),
+      fleet: new FleetComponent(),
+      maintenance: new MaintenanceComponent(),
+      alerts: new AlertsComponent()
+    };
   }
 
   init() {
-    // 1. Setup Navigation Event Listeners
-    try {
-      const navItems = document.querySelectorAll('.nav-item');
-      navItems.forEach(item => {
-        item.addEventListener('click', (e) => {
-          e.preventDefault();
-          const targetView = item.getAttribute('data-view');
-          this.switchView(targetView);
-        });
-      });
-    } catch(err) {
-      console.error('Nav setup error:', err);
-    }
-
-    // 2. Setup Vehicle Selector Listener
-    try {
-      const vehSelect = document.getElementById('select-vehicle');
-      if (vehSelect) {
-        vehSelect.addEventListener('change', (e) => {
-          this.selectVehicle(e.target.value);
-        });
-      }
-    } catch(err) {
-      console.error('Vehicle select setup error:', err);
-    }
-
-    // 3. Start Header Telematics Clock Immediately
+    this.bindNavigation();
+    this.bindVehicleSelector();
     this.startClock();
 
-    // 4. Subscribe to Live Telemetry Simulation Updates
-    if (window.telemetryEngine && typeof window.telemetryEngine.subscribe === 'function') {
-      window.telemetryEngine.subscribe((telemetry, fleet, alerts) => {
-        this.currentData = telemetry;
-        this.currentFleet = fleet;
-        this.currentAlerts = alerts;
-        this.updateVehicleDropdownOptions(fleet);
-        this.updateHeaderBadgeCounts(alerts);
+    // Subscribe to multi-vehicle telemetry engine ticks
+    if (window.telemetryEngine) {
+      window.telemetryEngine.subscribe((data, fleet) => {
+        this.currentData = data;
+        this.fleetData = fleet;
+        this.updateHeaderSummary();
         this.renderCurrentView();
-        if (this.isAlertModalOpen) {
-          this.renderAlertsModalContent();
-        }
       });
-    }
 
-    // Force Initial Render
-    this.switchView('overview');
+      // Initial render trigger
+      this.currentData = window.telemetryEngine.getActiveVehicleData();
+      this.fleetData = window.telemetryEngine.getFleetList();
+      this.updateHeaderSummary();
+      this.renderCurrentView();
+    }
   }
 
-  switchView(viewId) {
-    this.currentViewId = viewId;
+  bindNavigation() {
+    const navItems = document.querySelectorAll('.nav-item[data-view]');
+    navItems.forEach(item => {
+      item.addEventListener('click', (e) => {
+        e.preventDefault();
+        const targetView = item.getAttribute('data-view');
+        this.switchView(targetView);
+      });
+    });
+  }
 
-    // Update sidebar UI state
-    document.querySelectorAll('.nav-item').forEach(item => {
-      if (item.getAttribute('data-view') === viewId) {
+  bindVehicleSelector() {
+    const selector = document.getElementById('select-vehicle');
+    if (selector) {
+      selector.addEventListener('change', (e) => {
+        const vehicleId = e.target.value;
+        this.selectVehicle(vehicleId);
+      });
+    }
+  }
+
+  switchView(viewName) {
+    if (!this.components[viewName]) return;
+
+    this.currentView = viewName;
+
+    // Update sidebar navigation active classes
+    const navItems = document.querySelectorAll('.nav-item');
+    navItems.forEach(item => {
+      if (item.getAttribute('data-view') === viewName) {
         item.classList.add('active');
       } else {
         item.classList.remove('active');
       }
     });
 
-    // Hide all view panels and show active panel
-    document.querySelectorAll('.page-view').forEach(panel => {
-      if (panel.id === `view-${viewId}`) {
-        panel.classList.add('active');
-        panel.style.display = 'block';
-      } else {
-        panel.classList.remove('active');
-        panel.style.display = 'none';
-      }
-    });
+    // Update page container views
+    const views = document.querySelectorAll('.page-view');
+    views.forEach(v => v.classList.remove('active'));
 
-    const activePanel = document.getElementById(`view-${viewId}`);
-    if (activePanel) {
-      const comp = this.getComponent(viewId);
-      if (comp && typeof comp.render === 'function') {
-        try {
-          comp.render(activePanel, this.currentData, this.currentFleet, this.currentAlerts);
-        } catch(err) {
-          console.error(`Error rendering view ${viewId}:`, err);
-        }
+    const targetContainer = document.getElementById(`view-${viewName}`);
+    if (targetContainer) {
+      targetContainer.classList.add('active');
+    }
+
+    this.renderCurrentView();
+  }
+
+  renderCurrentView() {
+    if (!this.currentData) return;
+
+    const comp = this.components[this.currentView];
+    const activePanel = document.getElementById(`view-${this.currentView}`);
+
+    if (comp && activePanel) {
+      if (this.currentView === 'fleet') {
+        comp.render(activePanel, this.currentData, this.fleetData, this.getAlertsList());
+      } else if (this.currentView === 'alerts') {
+        comp.render(activePanel, this.getAlertsList());
+      } else {
+        comp.render(activePanel, this.currentData);
       }
     }
   }
@@ -134,7 +114,6 @@ class TelematicsApp {
   selectVehicle(vehicleId) {
     if (window.telemetryEngine) {
       window.telemetryEngine.selectVehicle(vehicleId);
-      this.currentData = window.telemetryEngine.telemetry;
     }
 
     const vehSelect = document.getElementById('select-vehicle');
@@ -149,7 +128,6 @@ class TelematicsApp {
 
     const currentSelected = window.telemetryEngine ? window.telemetryEngine.activeVehicleId : 'VOLVO-FH-001';
 
-    // Update dropdown options if fleet count changed
     if (vehSelect.options.length !== fleet.length) {
       vehSelect.innerHTML = fleet.map(v => `
         <option value="${v.id}" ${v.id === currentSelected ? 'selected' : ''}>${v.id} (${v.driver})</option>
@@ -159,24 +137,57 @@ class TelematicsApp {
     }
   }
 
-  updateRouteLocations() {
-    const startInput = document.getElementById('input-start-loc');
-    const destInput = document.getElementById('input-dest-loc');
+  onDriverSelect(val) {
+    if (!this.currentData) return;
+    if (val === 'ADD_NEW_DRIVER') {
+      const newDriver = prompt('Enter New Driver Full Name:');
+      if (newDriver && newDriver.trim()) {
+        const cleanName = newDriver.trim();
+        if (window.telemetryEngine) window.telemetryEngine.addCustomDriver(cleanName);
+        this.currentData.driver = cleanName;
+        window.telemetryEngine.notify();
+      } else {
+        this.renderCurrentView();
+      }
+    } else {
+      this.currentData.driver = val;
+      if (window.telemetryEngine) window.telemetryEngine.notify();
+    }
+  }
 
-    if (startInput && destInput && this.currentData) {
-      const startVal = startInput.value.trim();
-      const destVal = destInput.value.trim();
-      if (!startVal || !destVal) return;
+  onStartLocSelect(val) {
+    if (!this.currentData) return;
+    if (val === 'ADD_NEW_START') {
+      const newLoc = prompt('Enter New Start Location (Pick):');
+      if (newLoc && newLoc.trim()) {
+        const cleanLoc = newLoc.trim();
+        if (window.telemetryEngine) window.telemetryEngine.addCustomLocation(cleanLoc);
+        this.currentData.startLocation = cleanLoc;
+        window.telemetryEngine.notify();
+      } else {
+        this.renderCurrentView();
+      }
+    } else {
+      this.currentData.startLocation = val;
+      if (window.telemetryEngine) window.telemetryEngine.notify();
+    }
+  }
 
-      this.currentData.startLocation = startVal;
-      this.currentData.destination = destVal;
-      this.currentData.distanceRemaining = Math.round(320 + Math.random() * 100);
-      this.currentData.eta = `${Math.floor(this.currentData.distanceRemaining / 75)}h ${(this.currentData.distanceRemaining % 60)}m`;
-
-      alert(`Route Locations Updated for ${this.currentData.vehicleId}!\nStart Location: ${startVal}\nStop Destination: ${destVal}\nDistance Remaining: ${this.currentData.distanceRemaining} km`);
-      
-      if (document.activeElement) document.activeElement.blur();
-      this.renderCurrentView();
+  onDestLocSelect(val) {
+    if (!this.currentData) return;
+    if (val === 'ADD_NEW_DEST') {
+      const newLoc = prompt('Enter New Drop Location (Destination):');
+      if (newLoc && newLoc.trim()) {
+        const cleanLoc = newLoc.trim();
+        if (window.telemetryEngine) window.telemetryEngine.addCustomLocation(cleanLoc);
+        this.currentData.destination = cleanLoc;
+        window.telemetryEngine.notify();
+      } else {
+        this.renderCurrentView();
+      }
+    } else {
+      this.currentData.destination = val;
+      if (window.telemetryEngine) window.telemetryEngine.notify();
     }
   }
 
@@ -237,97 +248,83 @@ class TelematicsApp {
         location: loc || 'Gothenburg Logistics Terminal',
         speed: speed || 76,
         fuel: fuel || 85,
-        health: 96,
-        route: 'Compliant'
+        health: 96
       });
     }
 
     this.toggleAddDriverModal(false);
-    alert(`Successfully registered new driver ${driverName} with Vehicle ID ${vehId}!`);
-    this.selectVehicle(vehId);
+    alert(`Vehicle ${vehId} registered successfully with driver ${driverName}!`);
   }
 
   toggleAlertModal(show) {
     const modal = document.getElementById('alerts-modal');
-    if (!modal) return;
+    const content = document.getElementById('modal-alerts-content');
 
-    this.isAlertModalOpen = show;
+    if (!modal || !content) return;
+
     if (show) {
+      this.components.alerts.render(content, this.getAlertsList());
       modal.classList.add('open');
       modal.style.display = 'flex';
-      this.renderAlertsModalContent();
     } else {
       modal.classList.remove('open');
       modal.style.display = 'none';
     }
   }
 
-  renderAlertsModalContent() {
-    const modalContent = document.getElementById('modal-alerts-content');
-    if (modalContent) {
-      if (!this.alertsComponent && window.AlertsComponent) {
-        this.alertsComponent = new window.AlertsComponent();
-      }
-      if (this.alertsComponent) {
-        this.alertsComponent.render(modalContent, this.currentData, this.currentFleet, this.currentAlerts);
-      }
+  updateHeaderSummary() {
+    if (!this.currentData) return;
+
+    const statusBadge = document.getElementById('header-status-badge');
+    if (statusBadge) {
+      const statusClass = (this.currentData.status || 'Running').toLowerCase();
+      statusBadge.className = `status-badge ${statusClass}`;
+      statusBadge.innerHTML = `<i class="fa-solid fa-circle"></i> ${this.currentData.status}`;
+    }
+
+    this.updateVehicleDropdownOptions(this.fleetData);
+
+    const alertDot = document.getElementById('header-alert-dot');
+    if (alertDot) {
+      const activeAlerts = this.getAlertsList();
+      alertDot.style.display = activeAlerts.length > 0 ? 'block' : 'none';
     }
   }
 
-  renderCurrentView() {
-    if (document.activeElement && document.activeElement.tagName === 'INPUT') {
-      return;
+  getAlertsList() {
+    if (!this.currentData) return [];
+
+    const alerts = [];
+    if (this.currentData.isFuelTheftDetected) {
+      alerts.push({ type: 'CRITICAL', title: 'Fuel Theft Anomaly', desc: `Ultrasonic DYP-L02 drop >30L on ${this.currentData.vehicleId}`, time: 'Just now' });
+    }
+    if (this.currentData.tpms && this.currentData.tpms.some(t => t.press < 95)) {
+      alerts.push({ type: 'CRITICAL', title: 'Low Tyre Pressure (<95 PSI)', desc: 'Rear Left Tyre 3 pressure breached minimum threshold', time: '2 mins ago' });
+    }
+    if (this.currentData.driverDrowsiness) {
+      alerts.push({ type: 'WARNING', title: 'Driver Fatigue Alert', desc: 'Cockpit AI camera detected eye closure > 1.5s', time: 'Just now' });
+    }
+    if (this.currentData.speed > 85) {
+      alerts.push({ type: 'WARNING', title: 'Overspeed Warning', desc: `Speed ${this.currentData.speed.toFixed(1)} km/h exceeds 85 km/h threshold`, time: '5 mins ago' });
     }
 
-    const activePanel = document.getElementById(`view-${this.currentViewId}`);
-    if (!activePanel) return;
-
-    const comp = this.getComponent(this.currentViewId);
-    if (comp && typeof comp.render === 'function') {
-      try {
-        comp.render(activePanel, this.currentData, this.currentFleet, this.currentAlerts);
-      } catch(err) {
-        console.error(`Error re-rendering ${this.currentViewId}:`, err);
-      }
-    }
-  }
-
-  updateHeaderBadgeCounts(alerts) {
-    const counterEl = document.getElementById('alert-counter-badge');
-    const headerDot = document.getElementById('header-alert-dot');
-    if (counterEl) counterEl.textContent = alerts ? alerts.length : 0;
-    if (headerDot) headerDot.style.display = (alerts && alerts.length > 0) ? 'block' : 'none';
+    return alerts;
   }
 
   startClock() {
     const clockEl = document.getElementById('telematics-clock');
-    if (!clockEl) return;
-
     const updateTime = () => {
-      const now = new Date();
-      const timeStr = now.toLocaleTimeString();
-      const dateStr = now.toISOString().split('T')[0];
-      clockEl.innerHTML = `<i class="fa-solid fa-clock"></i> ${dateStr} ${timeStr} UTC`;
+      if (clockEl) {
+        const now = new Date();
+        clockEl.innerHTML = `<i class="fa-solid fa-clock"></i> ${now.toUTCString().split(' ')[4]} UTC`;
+      }
     };
-
     updateTime();
     setInterval(updateTime, 1000);
   }
 }
 
-// Reliable boot trigger
-function bootApp() {
-  if (!window.appInstance) {
-    try {
-      window.appInstance = new TelematicsApp();
-    } catch(err) {
-      console.error('Fatal TelematicsApp Boot Error:', err);
-    }
-  }
-}
-
-if (document.readyState === 'loading') {
-  document.addEventListener('DOMContentLoaded', bootApp);
-} else {
-  bootApp();
-}
+document.addEventListener('DOMContentLoaded', () => {
+  window.appInstance = new TelematicsApp();
+  window.appInstance.init();
+});

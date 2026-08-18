@@ -1,12 +1,35 @@
 /**
  * AI-Powered Truck Fleet Telematics Simulation Engine
  * Supports Multi-Vehicle Telemetry States (VOLVO-FH-001, 002, 003, 004 & custom added vehicles)
+ * Version 2: Added Trip Details & Dynamic Preset Location / Driver Selector Arrays
  */
 
 class TelemetrySimulationEngine {
   constructor() {
     this.listeners = [];
     this.activeVehicleId = 'VOLVO-FH-001';
+
+    // Default preset location options
+    this.defaultLocations = [
+      'Gothenburg Logistics Hub',
+      'Stockholm Freight Terminal',
+      'Malmö Transport Depot',
+      'Jönköping Cargo Hub',
+      'Helsingborg Port Logistics',
+      'Oslo Central Freight Center',
+      'Copenhagen Distribution Park',
+      'Hamburg Port Cargo Terminal'
+    ];
+
+    // Default preset driver options
+    this.defaultDrivers = [
+      'Erik Lindqvist',
+      'Lars Svensson',
+      'Astrid Nilsson',
+      'Johan Berg',
+      'Karin Olsson',
+      'Magnus Wallin'
+    ];
 
     // Interactive Trigger Flags
     this.flags = {
@@ -40,6 +63,10 @@ class TelemetrySimulationEngine {
         vehicleId: 'VOLVO-FH-001',
         model: 'Volvo FH16 750 6x2 Diesel Heavy-Duty',
         driver: 'Erik Lindqvist',
+        tripNo: '#TRIP-026',
+        tripDate: '2026-08-18',
+        startTime: '08:30 AM',
+        endTime: '04:45 PM',
         status: 'Running',
         engineStatus: 'ON',
         totalDistance: 148290.4,
@@ -139,61 +166,65 @@ class TelemetrySimulationEngine {
         vehicleId: 'VOLVO-FH-002',
         model: 'Volvo FH 500 4x2 Tractor',
         driver: 'Lars Svensson',
+        tripNo: '#TRIP-019',
+        tripDate: '2026-08-18',
+        startTime: '07:15 AM',
+        endTime: '02:30 PM',
         status: 'Running',
         engineStatus: 'ON',
         totalDistance: 92410.0,
-        tripDistance: 185.2,
-        locationName: 'E22 Highway, Malmö Southbound',
-        startLocation: 'Malmö Distribution Center',
-        destination: 'Copenhagen Cargo Hub',
-        currentLat: 55.60500,
-        currentLng: 13.00380,
-        distanceRemaining: 62.5,
-        eta: '0h 45m',
+        tripDistance: 145.2,
+        locationName: 'Malmö E22 Logistics Ring',
+        startLocation: 'Malmö Transport Depot',
+        destination: 'Jönköping Cargo Hub',
+        currentLat: 55.61200,
+        currentLng: 13.01500,
+        distanceRemaining: 210.0,
+        eta: '2h 15m',
         routeCompliance: 'Compliant',
-        geofenceStatus: 'Inside Zone (MALMO-02)',
-        speed: 84.2,
+        geofenceStatus: 'Inside Zone (MALM-DEP-02)',
+        speed: 82.0,
         maxSpeed: 90.0,
-        avgSpeed: 80.1,
-        acceleration: 0.22,
+        avgSpeed: 78.0,
+        acceleration: 0.0,
         deceleration: 0.0,
-        brakingIntensity: 0.02,
+        brakingIntensity: 0.0,
         harshAccelEvents: 0,
         harshBrakingEvents: 0,
         corneringEvents: 1,
         overspeedEvents: 0,
-        drivingScore: 95,
+        drivingScore: 94,
         drivingStatus: 'Excellent',
         tankCapacity: 400.0,
-        rawFuelHeight: 340.0,
-        rawFuelVolume: 340.0,
-        correctedFuelHeight: 341.0,
-        correctedFuelVolume: 341.0,
-        fuelPercent: 85.25,
-        estimatedRange: 1120.0,
-        instantConsumption: 26.1,
+        rawFuelHeight: 280.0,
+        rawFuelVolume: 280.0,
+        correctedFuelHeight: 280.0,
+        correctedFuelVolume: 280.0,
+        fuelPercent: 70.0,
+        estimatedRange: 820.0,
+        instantConsumption: 26.5,
         avgConsumption: 30.2,
-        tripFuelConsumed: 56.0,
-        totalFuelConsumed: 27900.0,
+        tripFuelConsumed: 44.0,
+        totalFuelConsumed: 28000.0,
         fuelEconomy: 3.31,
         isLowFuel: false,
         isFuelTheftDetected: false,
         isFuelLeakDetected: false,
-        pitch: -4.5,
-        roll: 3.2,
-        yaw: -8.0,
+        pitch: 0.0,
+        roll: 0.0,
+        yaw: 45.0,
         tpms: [
-          { id: 'TPMS-FL', pos: 'Front Left', press: 106.0, temp: 39.0, status: 'NORMAL' },
-          { id: 'TPMS-FR', pos: 'Front Right', press: 106.2, temp: 39.2, status: 'NORMAL' },
-          { id: 'TPMS-RL1', pos: 'Rear Left (Inner)', press: 105.8, temp: 41.0, status: 'NORMAL' },
-          { id: 'TPMS-RL2', pos: 'Rear Left (Outer)', press: 105.9, temp: 41.2, status: 'NORMAL' },
-          { id: 'TPMS-RR1', pos: 'Rear Right (Inner)', press: 106.1, temp: 41.1, status: 'NORMAL' },
-          { id: 'TPMS-RR2', pos: 'Rear Right (Outer)', press: 106.0, temp: 41.3, status: 'NORMAL' }
+          { id: 'TPMS-FL', pos: 'Front Left', press: 104.5, temp: 40.0, status: 'NORMAL' },
+          { id: 'TPMS-FR', pos: 'Front Right', press: 104.2, temp: 40.1, status: 'NORMAL' },
+          { id: 'TPMS-RL1', pos: 'Rear Left (Inner)', press: 105.0, temp: 42.0, status: 'NORMAL' },
+          { id: 'TPMS-RL2', pos: 'Rear Left (Outer)', press: 105.1, temp: 42.2, status: 'NORMAL' },
+          { id: 'TPMS-RR1', pos: 'Rear Right (Inner)', press: 104.9, temp: 42.1, status: 'NORMAL' },
+          { id: 'TPMS-RR2', pos: 'Rear Right (Outer)', press: 105.0, temp: 42.0, status: 'NORMAL' }
         ],
         batteryVoltage: 27.8,
-        batteryCurrent: 18.5,
+        batteryCurrent: 12.0,
         batterySoc: 98,
-        batterySoh: 96,
+        batterySoh: 95,
         batteryTemp: 26.0,
         batteryStatus: 'CHARGING',
         adasStatus: 'SAFE',
@@ -201,158 +232,63 @@ class TelemetrySimulationEngine {
         driverDistraction: false,
         overallHealthScore: 97,
         components: {
-          engine: { score: 98, risk: 'Low', status: 'Healthy', predictedMaint: '32,000 km' },
+          engine: { score: 98, risk: 'Low', status: 'Healthy', predictedMaint: '35,000 km' },
           battery: { score: 96, risk: 'Low', status: 'Healthy', predictedMaint: '28,000 km' },
-          tyres: { score: 95, risk: 'Low', status: 'Healthy', predictedMaint: '22,000 km' },
-          braking: { score: 97, risk: 'Low', status: 'Healthy', predictedMaint: '35,000 km' },
+          tyres: { score: 94, risk: 'Low', status: 'Nominal', predictedMaint: '20,000 km' },
+          braking: { score: 97, risk: 'Low', status: 'Healthy', predictedMaint: '40,000 km' },
           fuelSystem: { score: 99, risk: 'Low', status: 'Healthy', predictedMaint: '45,000 km' },
-          cooling: { score: 98, risk: 'Low', status: 'Healthy', predictedMaint: '40,000 km' }
+          cooling: { score: 98, risk: 'Low', status: 'Healthy', predictedMaint: '42,000 km' }
         },
         history: {
           timestamps: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30'],
-          speed: [80, 82, 83, 85, 84, 84.5, 84.2],
-          acceleration: [0.1, 0.1, 0.2, 0.1, 0.0, 0.1, 0.22],
-          rawFuel: [346, 345, 344, 343, 342, 341, 340],
-          correctedFuel: [347, 346, 345, 344, 343, 342, 341],
-          fuelConsumption: [25, 26, 26, 27, 26, 26, 26.1],
+          speed: [80, 81, 82, 82, 81, 82, 82],
+          acceleration: [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+          rawFuel: [285, 284, 283, 282, 281, 280.5, 280],
+          correctedFuel: [285, 284, 283, 282, 281, 280.5, 280],
+          fuelConsumption: [26, 26.2, 26.5, 26.5, 26.4, 26.5, 26.5],
           tyrePressures: [
-            [106, 106, 106, 106, 106, 106, 106],
-            [106.2, 106.2, 106.2, 106.2, 106.2, 106.2, 106.2],
-            [105.8, 105.8, 105.8, 105.8, 105.8, 105.8, 105.8],
-            [105.9, 105.9, 105.9, 105.9, 105.9, 105.9, 105.9],
-            [106.1, 106.1, 106.1, 106.1, 106.1, 106.1, 106.1],
-            [106, 106, 106, 106, 106, 106, 106]
+            [104.5, 104.5, 104.5, 104.5, 104.5, 104.5, 104.5],
+            [104.2, 104.2, 104.2, 104.2, 104.2, 104.2, 104.2],
+            [105.0, 105.0, 105.0, 105.0, 105.0, 105.0, 105.0],
+            [105.1, 105.1, 105.1, 105.1, 105.1, 105.1, 105.1],
+            [104.9, 104.9, 104.9, 104.9, 104.9, 104.9, 104.9],
+            [105.0, 105.0, 105.0, 105.0, 105.0, 105.0, 105.0]
           ],
           tyreTemps: [
-            [38, 38.2, 38.5, 38.8, 39, 39, 39],
-            [38, 38.3, 38.6, 38.9, 39.1, 39.2, 39.2],
-            [39, 39.5, 40, 40.5, 40.8, 41, 41],
-            [39, 39.5, 40.1, 40.6, 40.9, 41.1, 41.2],
-            [39, 39.4, 40, 40.4, 40.7, 41, 41.1],
-            [39, 39.5, 40.1, 40.6, 40.9, 41.2, 41.3]
+            [40, 40, 40, 40, 40, 40, 40],
+            [40.1, 40.1, 40.1, 40.1, 40.1, 40.1, 40.1],
+            [42, 42, 42, 42, 42, 42, 42],
+            [42.2, 42.2, 42.2, 42.2, 42.2, 42.2, 42.2],
+            [42.1, 42.1, 42.1, 42.1, 42.1, 42.1, 42.1],
+            [42, 42, 42, 42, 42, 42, 42]
           ]
         }
       },
 
       'VOLVO-FH-003': {
         vehicleId: 'VOLVO-FH-003',
-        model: 'Volvo FH 460 6x4 Heavy Transport',
+        model: 'Volvo FH 460 6x4 Rigid Heavy',
         driver: 'Astrid Nilsson',
-        status: 'Running',
-        engineStatus: 'ON',
+        tripNo: '#TRIP-042',
+        tripDate: '2026-08-18',
+        startTime: '09:00 AM',
+        endTime: '06:15 PM',
+        status: 'Idle',
+        engineStatus: 'OFF',
         totalDistance: 215800.0,
-        tripDistance: 410.5,
-        locationName: 'Route 40, Jönköping Incline',
-        startLocation: 'Jönköping Logistics Park',
-        destination: 'Oslo Cargo Depot',
+        tripDistance: 0.0,
+        locationName: 'Jönköping Cargo Yard',
+        startLocation: 'Jönköping Cargo Hub',
+        destination: 'Oslo Central Freight Center',
         currentLat: 57.78140,
         currentLng: 14.16100,
-        distanceRemaining: 310.0,
-        eta: '3h 30m',
-        routeCompliance: 'Deviated',
-        geofenceStatus: 'Outside Geofence (Route Deviation)',
-        speed: 65.2,
-        maxSpeed: 90.0,
-        avgSpeed: 61.4,
-        acceleration: -0.4,
-        deceleration: 0.4,
-        brakingIntensity: 0.25,
-        harshAccelEvents: 4,
-        harshBrakingEvents: 3,
-        corneringEvents: 5,
-        overspeedEvents: 2,
-        drivingScore: 68,
-        drivingStatus: 'Needs Review',
-        tankCapacity: 500.0,
-        rawFuelHeight: 240.0,
-        rawFuelVolume: 240.0,
-        correctedFuelHeight: 245.0,
-        correctedFuelVolume: 245.0,
-        fuelPercent: 49.0,
-        estimatedRange: 680.0,
-        instantConsumption: 38.5,
-        avgConsumption: 36.8,
-        tripFuelConsumed: 151.0,
-        totalFuelConsumed: 79400.0,
-        fuelEconomy: 2.71,
-        isLowFuel: false,
-        isFuelTheftDetected: false,
-        isFuelLeakDetected: false,
-        pitch: 6.8,
-        roll: -2.1,
-        yaw: 42.0,
-        tpms: [
-          { id: 'TPMS-FL', pos: 'Front Left', press: 92.1, temp: 58.5, status: 'CRITICAL' },
-          { id: 'TPMS-FR', pos: 'Front Right', press: 104.0, temp: 44.0, status: 'NORMAL' },
-          { id: 'TPMS-RL1', pos: 'Rear Left (Inner)', press: 103.5, temp: 45.1, status: 'NORMAL' },
-          { id: 'TPMS-RL2', pos: 'Rear Left (Outer)', press: 103.8, temp: 45.4, status: 'NORMAL' },
-          { id: 'TPMS-RR1', pos: 'Rear Right (Inner)', press: 104.1, temp: 44.8, status: 'NORMAL' },
-          { id: 'TPMS-RR2', pos: 'Rear Right (Outer)', press: 104.0, temp: 44.9, status: 'NORMAL' }
-        ],
-        batteryVoltage: 26.2,
-        batteryCurrent: 8.4,
-        batterySoc: 78,
-        batterySoh: 82,
-        batteryTemp: 34.0,
-        batteryStatus: 'CHARGING',
-        adasStatus: 'SAFE',
-        driverDrowsiness: false,
-        driverDistraction: false,
-        overallHealthScore: 74,
-        components: {
-          engine: { score: 82, risk: 'Medium', status: 'High Load', predictedMaint: '8,000 km' },
-          battery: { score: 82, risk: 'Low', status: 'Healthy', predictedMaint: '12,000 km' },
-          tyres: { score: 62, risk: 'High', status: 'Low Pressure FL', predictedMaint: '1,200 km' },
-          braking: { score: 75, risk: 'Medium', status: 'Brake Wear', predictedMaint: '6,000 km' },
-          fuelSystem: { score: 90, risk: 'Low', status: 'Healthy', predictedMaint: '25,000 km' },
-          cooling: { score: 80, risk: 'Medium', status: 'Warm Temp', predictedMaint: '10,000 km' }
-        },
-        history: {
-          timestamps: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30'],
-          speed: [60, 62, 64, 63, 65, 66, 65.2],
-          acceleration: [0.1, 0.2, -0.1, 0.2, -0.2, -0.4, -0.4],
-          rawFuel: [252, 250, 248, 246, 244, 242, 240],
-          correctedFuel: [257, 255, 253, 251, 249, 247, 245],
-          fuelConsumption: [35, 36, 37, 39, 38, 38, 38.5],
-          tyrePressures: [
-            [98, 96, 95, 94, 93, 92.5, 92.1],
-            [104, 104, 104, 104, 104, 104, 104],
-            [103.5, 103.5, 103.5, 103.5, 103.5, 103.5, 103.5],
-            [103.8, 103.8, 103.8, 103.8, 103.8, 103.8, 103.8],
-            [104.1, 104.1, 104.1, 104.1, 104.1, 104.1, 104.1],
-            [104, 104, 104, 104, 104, 104, 104]
-          ],
-          tyreTemps: [
-            [48, 50, 52, 54, 56, 57.5, 58.5],
-            [43, 43.2, 43.5, 43.8, 44, 44, 44],
-            [44, 44.2, 44.5, 44.8, 45, 45, 45.1],
-            [44, 44.3, 44.6, 44.9, 45.2, 45.3, 45.4],
-            [43.5, 43.8, 44.1, 44.4, 44.6, 44.7, 44.8],
-            [43.5, 43.9, 44.2, 44.5, 44.7, 44.8, 44.9]
-          ]
-        }
-      },
-
-      'VOLVO-FH-004': {
-        vehicleId: 'VOLVO-FH-004',
-        model: 'Volvo FH Electric 6x2',
-        driver: 'Johan Berg',
-        status: 'Offline',
-        engineStatus: 'OFF',
-        totalDistance: 48920.0,
-        tripDistance: 0.0,
-        locationName: 'Norrköping Depot Gate 4',
-        startLocation: 'Norrköping Logistics Depot',
-        destination: 'Norrköping Logistics Depot',
-        currentLat: 58.58770,
-        currentLng: 16.18240,
-        distanceRemaining: 0.0,
-        eta: '0h 0m',
+        distanceRemaining: 340.0,
+        eta: '5h 00m',
         routeCompliance: 'Compliant',
-        geofenceStatus: 'Inside Depot Base',
+        geofenceStatus: 'Inside Zone (JONK-HUB-03)',
         speed: 0.0,
         maxSpeed: 90.0,
-        avgSpeed: 0.0,
+        avgSpeed: 68.0,
         acceleration: 0.0,
         deceleration: 0.0,
         brakingIntensity: 0.0,
@@ -360,58 +296,58 @@ class TelemetrySimulationEngine {
         harshBrakingEvents: 0,
         corneringEvents: 0,
         overspeedEvents: 0,
-        drivingScore: 100,
-        drivingStatus: 'Parked',
-        tankCapacity: 450.0,
-        rawFuelHeight: 405.0,
-        rawFuelVolume: 405.0,
-        correctedFuelHeight: 405.0,
-        correctedFuelVolume: 405.0,
-        fuelPercent: 90.0,
-        estimatedRange: 1250.0,
+        drivingScore: 91,
+        drivingStatus: 'Excellent',
+        tankCapacity: 500.0,
+        rawFuelHeight: 410.0,
+        rawFuelVolume: 410.0,
+        correctedFuelHeight: 410.0,
+        correctedFuelVolume: 410.0,
+        fuelPercent: 82.0,
+        estimatedRange: 1150.0,
         instantConsumption: 0.0,
-        avgConsumption: 0.0,
+        avgConsumption: 33.0,
         tripFuelConsumed: 0.0,
-        totalFuelConsumed: 14200.0,
-        fuelEconomy: 3.44,
+        totalFuelConsumed: 71200.0,
+        fuelEconomy: 3.03,
         isLowFuel: false,
         isFuelTheftDetected: false,
         isFuelLeakDetected: false,
         pitch: 0.0,
         roll: 0.0,
-        yaw: 0.0,
+        yaw: 180.0,
         tpms: [
-          { id: 'TPMS-FL', pos: 'Front Left', press: 105.0, temp: 22.0, status: 'NORMAL' },
-          { id: 'TPMS-FR', pos: 'Front Right', press: 105.0, temp: 22.0, status: 'NORMAL' },
-          { id: 'TPMS-RL1', pos: 'Rear Left (Inner)', press: 105.0, temp: 22.0, status: 'NORMAL' },
-          { id: 'TPMS-RL2', pos: 'Rear Left (Outer)', press: 105.0, temp: 22.0, status: 'NORMAL' },
-          { id: 'TPMS-RR1', pos: 'Rear Right (Inner)', press: 105.0, temp: 22.0, status: 'NORMAL' },
-          { id: 'TPMS-RR2', pos: 'Rear Right (Outer)', press: 105.0, temp: 22.0, status: 'NORMAL' }
+          { id: 'TPMS-FL', pos: 'Front Left', press: 105.0, temp: 35.0, status: 'NORMAL' },
+          { id: 'TPMS-FR', pos: 'Front Right', press: 105.0, temp: 35.0, status: 'NORMAL' },
+          { id: 'TPMS-RL1', pos: 'Rear Left (Inner)', press: 105.0, temp: 35.0, status: 'NORMAL' },
+          { id: 'TPMS-RL2', pos: 'Rear Left (Outer)', press: 105.0, temp: 35.0, status: 'NORMAL' },
+          { id: 'TPMS-RR1', pos: 'Rear Right (Inner)', press: 105.0, temp: 35.0, status: 'NORMAL' },
+          { id: 'TPMS-RR2', pos: 'Rear Right (Outer)', press: 105.0, temp: 35.0, status: 'NORMAL' }
         ],
-        batteryVoltage: 28.2,
-        batteryCurrent: 0.0,
-        batterySoc: 100,
-        batterySoh: 99,
-        batteryTemp: 21.0,
-        batteryStatus: 'CHARGED',
+        batteryVoltage: 25.1,
+        batteryCurrent: -1.5,
+        batterySoc: 88,
+        batterySoh: 90,
+        batteryTemp: 22.0,
+        batteryStatus: 'DISCHARGING',
         adasStatus: 'SAFE',
         driverDrowsiness: false,
         driverDistraction: false,
-        overallHealthScore: 100,
+        overallHealthScore: 94,
         components: {
-          engine: { score: 100, risk: 'Low', status: 'Healthy', predictedMaint: '50,000 km' },
-          battery: { score: 99, risk: 'Low', status: 'Healthy', predictedMaint: '45,000 km' },
-          tyres: { score: 100, risk: 'Low', status: 'Healthy', predictedMaint: '40,000 km' },
-          braking: { score: 100, risk: 'Low', status: 'Healthy', predictedMaint: '50,000 km' },
-          fuelSystem: { score: 100, risk: 'Low', status: 'Healthy', predictedMaint: '60,000 km' },
-          cooling: { score: 100, risk: 'Low', status: 'Healthy', predictedMaint: '55,000 km' }
+          engine: { score: 95, risk: 'Low', status: 'Healthy', predictedMaint: '20,000 km' },
+          battery: { score: 88, risk: 'Low', status: 'Healthy', predictedMaint: '15,000 km' },
+          tyres: { score: 92, risk: 'Low', status: 'Nominal', predictedMaint: '18,000 km' },
+          braking: { score: 95, risk: 'Low', status: 'Healthy', predictedMaint: '25,000 km' },
+          fuelSystem: { score: 96, risk: 'Low', status: 'Healthy', predictedMaint: '30,000 km' },
+          cooling: { score: 94, risk: 'Low', status: 'Healthy', predictedMaint: '22,000 km' }
         },
         history: {
           timestamps: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30'],
           speed: [0, 0, 0, 0, 0, 0, 0],
           acceleration: [0, 0, 0, 0, 0, 0, 0],
-          rawFuel: [405, 405, 405, 405, 405, 405, 405],
-          correctedFuel: [405, 405, 405, 405, 405, 405, 405],
+          rawFuel: [410, 410, 410, 410, 410, 410, 410],
+          correctedFuel: [410, 410, 410, 410, 410, 410, 410],
           fuelConsumption: [0, 0, 0, 0, 0, 0, 0],
           tyrePressures: [
             [105, 105, 105, 105, 105, 105, 105],
@@ -422,51 +358,128 @@ class TelemetrySimulationEngine {
             [105, 105, 105, 105, 105, 105, 105]
           ],
           tyreTemps: [
-            [22, 22, 22, 22, 22, 22, 22],
-            [22, 22, 22, 22, 22, 22, 22],
-            [22, 22, 22, 22, 22, 22, 22],
-            [22, 22, 22, 22, 22, 22, 22],
-            [22, 22, 22, 22, 22, 22, 22],
-            [22, 22, 22, 22, 22, 22, 22]
+            [35, 35, 35, 35, 35, 35, 35],
+            [35, 35, 35, 35, 35, 35, 35],
+            [35, 35, 35, 35, 35, 35, 35],
+            [35, 35, 35, 35, 35, 35, 35],
+            [35, 35, 35, 35, 35, 35, 35],
+            [35, 35, 35, 35, 35, 35, 35]
+          ]
+        }
+      },
+
+      'VOLVO-FH-004': {
+        vehicleId: 'VOLVO-FH-004',
+        model: 'Volvo FH16 750 Heavy Transporter',
+        driver: 'Johan Berg',
+        tripNo: '#TRIP-088',
+        tripDate: '2026-08-18',
+        startTime: '10:00 AM',
+        endTime: '08:30 PM',
+        status: 'Offline',
+        engineStatus: 'OFF',
+        totalDistance: 341000.0,
+        tripDistance: 0.0,
+        locationName: 'Norrköping Service Depot',
+        startLocation: 'Helsingborg Port Logistics',
+        destination: 'Copenhagen Distribution Park',
+        currentLat: 58.58770,
+        currentLng: 16.18240,
+        distanceRemaining: 0.0,
+        eta: '0h 00m',
+        routeCompliance: 'Deviated',
+        geofenceStatus: 'Outside Geofence',
+        speed: 0.0,
+        maxSpeed: 90.0,
+        avgSpeed: 0.0,
+        acceleration: 0.0,
+        deceleration: 0.0,
+        brakingIntensity: 0.0,
+        harshAccelEvents: 0,
+        harshBrakingEvents: 0,
+        corneringEvents: 0,
+        overspeedEvents: 0,
+        drivingScore: 74,
+        drivingStatus: 'Needs Review',
+        tankCapacity: 450.0,
+        rawFuelHeight: 110.0,
+        rawFuelVolume: 110.0,
+        correctedFuelHeight: 110.0,
+        correctedFuelVolume: 110.0,
+        fuelPercent: 24.4,
+        estimatedRange: 320.0,
+        instantConsumption: 0.0,
+        avgConsumption: 35.0,
+        tripFuelConsumed: 0.0,
+        totalFuelConsumed: 119300.0,
+        fuelEconomy: 2.85,
+        isLowFuel: true,
+        isFuelTheftDetected: false,
+        isFuelLeakDetected: false,
+        pitch: 0.0,
+        roll: 0.0,
+        yaw: 0.0,
+        tpms: [
+          { id: 'TPMS-FL', pos: 'Front Left', press: 94.0, temp: 30.0, status: 'WARNING' },
+          { id: 'TPMS-FR', pos: 'Front Right', press: 104.0, temp: 30.0, status: 'NORMAL' },
+          { id: 'TPMS-RL1', pos: 'Rear Left (Inner)', press: 104.0, temp: 30.0, status: 'NORMAL' },
+          { id: 'TPMS-RL2', pos: 'Rear Left (Outer)', press: 104.0, temp: 30.0, status: 'NORMAL' },
+          { id: 'TPMS-RR1', pos: 'Rear Right (Inner)', press: 104.0, temp: 30.0, status: 'NORMAL' },
+          { id: 'TPMS-RR2', pos: 'Rear Right (Outer)', press: 104.0, temp: 30.0, status: 'NORMAL' }
+        ],
+        batteryVoltage: 24.2,
+        batteryCurrent: 0.0,
+        batterySoc: 65,
+        batterySoh: 82,
+        batteryTemp: 20.0,
+        batteryStatus: 'STANDBY',
+        adasStatus: 'SAFE',
+        driverDrowsiness: false,
+        driverDistraction: false,
+        overallHealthScore: 78,
+        components: {
+          engine: { score: 85, risk: 'Low', status: 'Healthy', predictedMaint: '10,000 km' },
+          battery: { score: 72, risk: 'Medium', status: 'Low Voltage', predictedMaint: '2,000 km' },
+          tyres: { score: 68, risk: 'Medium', status: 'Low Pressure FL', predictedMaint: '1,000 km' },
+          braking: { score: 88, risk: 'Low', status: 'Healthy', predictedMaint: '12,000 km' },
+          fuelSystem: { score: 80, risk: 'Low', status: 'Low Fuel Reserve', predictedMaint: '5,000 km' },
+          cooling: { score: 86, risk: 'Low', status: 'Healthy', predictedMaint: '14,000 km' }
+        },
+        history: {
+          timestamps: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30'],
+          speed: [0, 0, 0, 0, 0, 0, 0],
+          acceleration: [0, 0, 0, 0, 0, 0, 0],
+          rawFuel: [110, 110, 110, 110, 110, 110, 110],
+          correctedFuel: [110, 110, 110, 110, 110, 110, 110],
+          fuelConsumption: [0, 0, 0, 0, 0, 0, 0],
+          tyrePressures: [
+            [94, 94, 94, 94, 94, 94, 94],
+            [104, 104, 104, 104, 104, 104, 104],
+            [104, 104, 104, 104, 104, 104, 104],
+            [104, 104, 104, 104, 104, 104, 104],
+            [104, 104, 104, 104, 104, 104, 104],
+            [104, 104, 104, 104, 104, 104, 104]
+          ],
+          tyreTemps: [
+            [30, 30, 30, 30, 30, 30, 30],
+            [30, 30, 30, 30, 30, 30, 30],
+            [30, 30, 30, 30, 30, 30, 30],
+            [30, 30, 30, 30, 30, 30, 30],
+            [30, 30, 30, 30, 30, 30, 30],
+            [30, 30, 30, 30, 30, 30, 30]
           ]
         }
       }
     };
-
-    // Fleet Table Summary Overview
-    this.updateFleetArray();
-
-    // Start Simulation Telemetry Timer Loop (100Hz tick, UI update 1Hz)
-    this.startSimulationLoop();
   }
 
-  get telemetry() {
-    return this.vehiclesData[this.activeVehicleId] || this.vehiclesData['VOLVO-FH-001'];
+  subscribe(listener) {
+    this.listeners.push(listener);
   }
 
-  get plannedRoute() {
-    return this.plannedRoutes[this.activeVehicleId] || this.plannedRoutes['VOLVO-FH-001'];
-  }
-
-  updateFleetArray() {
-    this.fleet = Object.keys(this.vehiclesData).map(id => {
-      const v = this.vehiclesData[id];
-      const lowestTyre = v.tpms.reduce((min, t) => t.press < min ? t.press : min, 999);
-      let tyreText = 'NORMAL (105 PSI)';
-      if (lowestTyre < 95.0) tyreText = `CRITICAL (${lowestTyre.toFixed(1)} PSI)`;
-      else if (lowestTyre < 100.0) tyreText = `WARNING (${lowestTyre.toFixed(1)} PSI)`;
-
-      return {
-        id: v.vehicleId,
-        driver: v.driver,
-        location: v.locationName,
-        speed: `${v.speed.toFixed(1)} km/h`,
-        fuel: `${v.fuelPercent.toFixed(1)}%`,
-        tyre: tyreText,
-        health: `${v.overallHealthScore}/100`,
-        route: v.routeCompliance
-      };
-    });
+  notify() {
+    const data = this.getActiveVehicleData();
+    this.listeners.forEach(fn => fn(data, this.getFleetList()));
   }
 
   selectVehicle(vehicleId) {
@@ -476,55 +489,91 @@ class TelemetrySimulationEngine {
     }
   }
 
+  getActiveVehicleData() {
+    const v = this.vehiclesData[this.activeVehicleId] || this.vehiclesData['VOLVO-FH-001'];
+    v.flags = this.flags;
+    return v;
+  }
+
+  getFleetList() {
+    return Object.keys(this.vehiclesData).map(key => {
+      const v = this.vehiclesData[key];
+      return {
+        id: v.vehicleId,
+        driver: v.driver,
+        model: v.model,
+        location: v.locationName,
+        speed: `${v.speed.toFixed(1)} km/h`,
+        fuel: `${v.fuelPercent.toFixed(1)}%`,
+        tyre: v.tpms.some(t => t.press < 95) ? 'CRITICAL (<95 PSI)' : (v.tpms.some(t => t.press < 100) ? 'WARNING' : 'NORMAL'),
+        health: `${v.overallHealthScore}%`,
+        route: v.routeCompliance
+      };
+    });
+  }
+
   addNewVehicle(vehData) {
-    const id = vehData.vehicleId.toUpperCase();
-    this.vehiclesData[id] = {
-      vehicleId: id,
+    const newId = vehData.vehicleId || `VOLVO-FH-00${Object.keys(this.vehiclesData).length + 1}`;
+    
+    // Add driver and start location to default dropdown lists if not present
+    if (vehData.driver && !this.defaultDrivers.includes(vehData.driver)) {
+      this.defaultDrivers.push(vehData.driver);
+    }
+    if (vehData.location && !this.defaultLocations.includes(vehData.location)) {
+      this.defaultLocations.push(vehData.location);
+    }
+
+    this.vehiclesData[newId] = {
+      vehicleId: newId,
       model: vehData.model || 'Volvo FH 750 Diesel',
       driver: vehData.driver || 'New Driver',
-      status: vehData.status || 'Running',
+      tripNo: `#TRIP-0${Math.floor(10 + Math.random() * 89)}`,
+      tripDate: '2026-08-18',
+      startTime: '08:00 AM',
+      endTime: '05:00 PM',
+      status: 'Running',
       engineStatus: 'ON',
-      totalDistance: 50000.0,
-      tripDistance: 120.0,
-      locationName: vehData.location || 'Regional Depot Hub',
-      startLocation: 'Regional Depot Hub',
-      destination: 'Terminal Express',
-      currentLat: 57.7000,
-      currentLng: 11.9700,
-      distanceRemaining: 250.0,
-      eta: '2h 30m',
-      routeCompliance: vehData.route || 'Compliant',
+      totalDistance: 12000.0,
+      tripDistance: 45.0,
+      locationName: vehData.location || 'Gothenburg Logistics Terminal',
+      startLocation: vehData.location || 'Gothenburg Logistics Hub',
+      destination: 'Stockholm Freight Terminal',
+      currentLat: 57.70887 + (Math.random() * 0.05),
+      currentLng: 11.97456 + (Math.random() * 0.05),
+      distanceRemaining: 380.0,
+      eta: '4h 30m',
+      routeCompliance: 'Compliant',
       geofenceStatus: 'Inside Zone',
-      speed: parseFloat(vehData.speed) || 75.0,
+      speed: parseFloat(vehData.speed) || 76.0,
       maxSpeed: 90.0,
-      avgSpeed: 70.0,
+      avgSpeed: 72.0,
       acceleration: 0.1,
       deceleration: 0.0,
-      brakingIntensity: 0.05,
+      brakingIntensity: 0.0,
       harshAccelEvents: 0,
       harshBrakingEvents: 0,
       corneringEvents: 0,
       overspeedEvents: 0,
-      drivingScore: 90,
+      drivingScore: 92,
       drivingStatus: 'Good',
       tankCapacity: 450.0,
-      rawFuelHeight: 350.0,
-      rawFuelVolume: 350.0,
-      correctedFuelHeight: 350.0,
-      correctedFuelVolume: 350.0,
-      fuelPercent: parseFloat(vehData.fuel) || 80.0,
-      estimatedRange: 1000.0,
+      rawFuelHeight: 380.0,
+      rawFuelVolume: 380.0,
+      correctedFuelHeight: 380.0,
+      correctedFuelVolume: 380.0,
+      fuelPercent: parseFloat(vehData.fuel) || 85.0,
+      estimatedRange: 980.0,
       instantConsumption: 27.5,
       avgConsumption: 31.0,
-      tripFuelConsumed: 40.0,
-      totalFuelConsumed: 15000.0,
-      fuelEconomy: 3.2,
+      tripFuelConsumed: 12.0,
+      totalFuelConsumed: 3800.0,
+      fuelEconomy: 3.22,
       isLowFuel: false,
       isFuelTheftDetected: false,
       isFuelLeakDetected: false,
-      pitch: 0.5,
+      pitch: 0.0,
       roll: 0.0,
-      yaw: 5.0,
+      yaw: 10.0,
       tpms: [
         { id: 'TPMS-FL', pos: 'Front Left', press: 105.0, temp: 40.0, status: 'NORMAL' },
         { id: 'TPMS-FR', pos: 'Front Right', press: 105.0, temp: 40.0, status: 'NORMAL' },
@@ -533,112 +582,109 @@ class TelemetrySimulationEngine {
         { id: 'TPMS-RR1', pos: 'Rear Right (Inner)', press: 105.0, temp: 40.0, status: 'NORMAL' },
         { id: 'TPMS-RR2', pos: 'Rear Right (Outer)', press: 105.0, temp: 40.0, status: 'NORMAL' }
       ],
-      batteryVoltage: 27.5,
-      batteryCurrent: 12.0,
-      batterySoc: 95,
-      batterySoh: 95,
+      batteryVoltage: 27.2,
+      batteryCurrent: 10.0,
+      batterySoc: 92,
+      batterySoh: 94,
       batteryTemp: 25.0,
       batteryStatus: 'CHARGING',
       adasStatus: 'SAFE',
       driverDrowsiness: false,
       driverDistraction: false,
-      overallHealthScore: parseInt(vehData.health) || 95,
+      overallHealthScore: vehData.health || 96,
       components: {
-        engine: { score: 95, risk: 'Low', status: 'Healthy', predictedMaint: '30,000 km' },
-        battery: { score: 95, risk: 'Low', status: 'Healthy', predictedMaint: '25,000 km' },
-        tyres: { score: 95, risk: 'Low', status: 'Healthy', predictedMaint: '20,000 km' },
-        braking: { score: 95, risk: 'Low', status: 'Healthy', predictedMaint: '30,000 km' },
-        fuelSystem: { score: 95, risk: 'Low', status: 'Healthy', predictedMaint: '40,000 km' },
+        engine: { score: 96, risk: 'Low', status: 'Healthy', predictedMaint: '30,000 km' },
+        battery: { score: 92, risk: 'Low', status: 'Healthy', predictedMaint: '25,000 km' },
+        tyres: { score: 95, risk: 'Low', status: 'Nominal', predictedMaint: '20,000 km' },
+        braking: { score: 96, risk: 'Low', status: 'Healthy', predictedMaint: '35,000 km' },
+        fuelSystem: { score: 98, risk: 'Low', status: 'Healthy', predictedMaint: '40,000 km' },
         cooling: { score: 95, risk: 'Low', status: 'Healthy', predictedMaint: '35,000 km' }
       },
       history: {
-        timestamps: ['10:00', '10:05', '10:10'],
-        speed: [70, 72, 75],
-        acceleration: [0.1, 0.1, 0.1],
-        rawFuel: [350, 350, 350],
-        correctedFuel: [350, 350, 350],
-        fuelConsumption: [27, 27, 27.5],
-        tyrePressures: [[105, 105], [105, 105], [105, 105], [105, 105], [105, 105], [105, 105]],
-        tyreTemps: [[40, 40], [40, 40], [40, 40], [40, 40], [40, 40], [40, 40]]
+        timestamps: ['10:00', '10:05', '10:10', '10:15', '10:20', '10:25', '10:30'],
+        speed: [70, 72, 74, 75, 76, 76, 76],
+        acceleration: [0.1, 0.1, 0.1, 0.0, 0.0, 0.0, 0.0],
+        rawFuel: [385, 384, 383, 382, 381, 380, 380],
+        correctedFuel: [385, 384, 383, 382, 381, 380, 380],
+        fuelConsumption: [27, 27.2, 27.4, 27.5, 27.5, 27.5, 27.5],
+        tyrePressures: [
+          [105, 105, 105, 105, 105, 105, 105],
+          [105, 105, 105, 105, 105, 105, 105],
+          [105, 105, 105, 105, 105, 105, 105],
+          [105, 105, 105, 105, 105, 105, 105],
+          [105, 105, 105, 105, 105, 105, 105],
+          [105, 105, 105, 105, 105, 105, 105]
+        ],
+        tyreTemps: [
+          [40, 40, 40, 40, 40, 40, 40],
+          [40, 40, 40, 40, 40, 40, 40],
+          [40, 40, 40, 40, 40, 40, 40],
+          [40, 40, 40, 40, 40, 40, 40],
+          [40, 40, 40, 40, 40, 40, 40],
+          [40, 40, 40, 40, 40, 40, 40]
+        ]
       }
     };
 
-    this.plannedRoutes[id] = [
-      [57.7000, 11.9700], [57.7100, 11.9800], [57.7200, 11.9900]
-    ];
-
-    this.updateFleetArray();
-    this.selectVehicle(id);
+    this.activeVehicleId = newId;
+    this.notify();
   }
 
-  subscribe(callback) {
-    this.listeners.push(callback);
-    callback(this.telemetry, this.fleet, this.generateAlerts());
+  addCustomLocation(locName) {
+    if (locName && !this.defaultLocations.includes(locName)) {
+      this.defaultLocations.push(locName);
+    }
   }
 
-  notify() {
-    this.updateFleetArray();
-    const alerts = this.generateAlerts();
-    this.listeners.forEach(cb => cb(this.telemetry, this.fleet, alerts));
+  addCustomDriver(driverName) {
+    if (driverName && !this.defaultDrivers.includes(driverName)) {
+      this.defaultDrivers.push(driverName);
+    }
   }
 
   toggleFuelTheft() {
     this.flags.fuelTheftActive = !this.flags.fuelTheftActive;
-    const active = this.vehiclesData[this.activeVehicleId];
-    if (active) {
-      active.isFuelTheftDetected = this.flags.fuelTheftActive;
-      if (this.flags.fuelTheftActive) {
-        active.correctedFuelVolume -= 35.0;
-        active.fuelPercent = (active.correctedFuelVolume / active.tankCapacity) * 100;
-        active.engineStatus = 'OFF';
-        active.status = 'Idle';
-      }
+    const v = this.getActiveVehicleData();
+    v.isFuelTheftDetected = this.flags.fuelTheftActive;
+    if (this.flags.fuelTheftActive) {
+      v.rawFuelVolume -= 35.0;
+      v.correctedFuelVolume -= 35.0;
+      v.fuelPercent = (v.correctedFuelVolume / v.tankCapacity) * 100;
     }
     this.notify();
   }
 
   toggleSteepIncline() {
     this.flags.steepInclineActive = !this.flags.steepInclineActive;
-    const active = this.vehiclesData[this.activeVehicleId];
-    if (active) {
-      if (this.flags.steepInclineActive) {
-        active.pitch = 6.8;
-        active.roll = -3.2;
-        active.rawFuelVolume -= 18.5;
-      } else {
-        active.pitch = 0.8;
-        active.roll = -0.4;
-        active.rawFuelVolume = active.correctedFuelVolume;
-      }
-    }
+    const v = this.getActiveVehicleData();
+    v.pitch = this.flags.steepInclineActive ? 6.8 : 2.4;
+    v.roll = this.flags.steepInclineActive ? -3.2 : -1.2;
+    v.rawFuelHeight = this.flags.steepInclineActive ? 285.0 : 318.0;
+    v.rawFuelVolume = v.rawFuelHeight;
+    v.correctedFuelHeight = 325.0;
+    v.correctedFuelVolume = 325.0;
     this.notify();
   }
 
   toggleTyreLeak() {
     this.flags.tyreLeakActive = !this.flags.tyreLeakActive;
-    const active = this.vehiclesData[this.activeVehicleId];
-    if (active) {
-      if (this.flags.tyreLeakActive) {
-        active.tpms[2].press = 88.5; // Drops below 95.0 PSI threshold!
-        active.tpms[2].temp = 74.2;
-        active.tpms[2].status = 'CRITICAL';
-      } else {
-        active.tpms[2].press = 105.0;
-        active.tpms[2].temp = 42.0;
-        active.tpms[2].status = 'NORMAL';
-      }
+    const v = this.getActiveVehicleData();
+    if (this.flags.tyreLeakActive) {
+      v.tpms[2].press = 88.5; // Breaches 95 PSI minimum safety threshold
+      v.tpms[2].status = 'CRITICAL';
+      v.tpms[2].temp = 74.0;
+    } else {
+      v.tpms[2].press = 96.4;
+      v.tpms[2].status = 'WARNING';
+      v.tpms[2].temp = 68.2;
     }
     this.notify();
   }
 
   toggleFatigue() {
     this.flags.drowsinessActive = !this.flags.drowsinessActive;
-    const active = this.vehiclesData[this.activeVehicleId];
-    if (active) {
-      active.driverDrowsiness = this.flags.drowsinessActive;
-      active.driverDistraction = this.flags.drowsinessActive;
-      active.adasStatus = this.flags.drowsinessActive ? 'CRITICAL DROWSINESS' : 'SAFE';
-    }
+    const v = this.getActiveVehicleData();
+    v.driverDrowsiness = this.flags.drowsinessActive;
     this.notify();
   }
 
@@ -647,122 +693,21 @@ class TelemetrySimulationEngine {
     this.flags.steepInclineActive = false;
     this.flags.tyreLeakActive = false;
     this.flags.drowsinessActive = false;
-
-    const active = this.vehiclesData[this.activeVehicleId];
-    if (active) {
-      active.isFuelTheftDetected = false;
-      active.pitch = 0.8;
-      active.roll = -0.4;
-      active.tpms[2].press = 105.0;
-      active.tpms[2].status = 'NORMAL';
-      active.driverDrowsiness = false;
-      active.adasStatus = 'SAFE';
-      active.engineStatus = 'ON';
-      active.status = 'Running';
-    }
+    const v = this.getActiveVehicleData();
+    v.isFuelTheftDetected = false;
+    v.pitch = 2.4;
+    v.roll = -1.2;
+    v.driverDrowsiness = false;
+    v.tpms[2].press = 96.4;
+    v.tpms[2].status = 'WARNING';
     this.notify();
   }
 
-  generateAlerts() {
-    const alerts = [];
-    const now = new Date().toLocaleTimeString();
-
-    Object.keys(this.vehiclesData).forEach(id => {
-      const v = this.vehiclesData[id];
-      if (v.isFuelTheftDetected) {
-        alerts.push({
-          id: `ALT-FT-${id}`,
-          severity: 'Critical',
-          time: now,
-          vehicle: id,
-          location: v.locationName,
-          category: 'Fuel Security',
-          desc: 'Stationary Fuel Theft (>30L drop with Engine OFF)',
-          action: 'Dispatch Security & Immobilize Engine'
-        });
-      }
-      if (v.driverDrowsiness) {
-        alerts.push({
-          id: `ALT-FAT-${id}`,
-          severity: 'Critical',
-          time: now,
-          vehicle: id,
-          location: v.locationName,
-          category: 'ADAS Driver Safety',
-          desc: 'Driver Eye Closure & Distraction (>3.0s)',
-          action: 'Trigger Seat Vibration & Acoustic Alarm'
-        });
-      }
-      const critTyre = v.tpms.find(t => t.press < 95.0);
-      if (critTyre) {
-        alerts.push({
-          id: `ALT-TPMS-${id}`,
-          severity: 'Warning',
-          time: now,
-          vehicle: id,
-          location: v.locationName,
-          category: 'Tyre Telematics',
-          desc: `${critTyre.pos} Pressure below minimum threshold (${critTyre.press.toFixed(1)} PSI < 95 PSI)`,
-          action: 'Inspect Tyre at Next Service Depot'
-        });
-      }
-      if (v.routeCompliance === 'Deviated') {
-        alerts.push({
-          id: `ALT-DEV-${id}`,
-          severity: 'Info',
-          time: now,
-          vehicle: id,
-          location: v.locationName,
-          category: 'Route Optimization',
-          desc: 'Vehicle deviated from designated Geofence corridor',
-          action: 'Recalculate GPS Route'
-        });
-      }
-    });
-
-    return alerts;
-  }
-
-  startSimulationLoop() {
-    setInterval(() => {
-      // Dynamic micro-updates across running vehicles
-      Object.keys(this.vehiclesData).forEach(id => {
-        const v = this.vehiclesData[id];
-        if (v.status === 'Running' && v.engineStatus === 'ON') {
-          // Dynamic GPS position progression along planned route
-          const route = this.plannedRoutes[id];
-          if (route && route.length > 1) {
-            v.currentLat += (Math.random() - 0.5) * 0.0004;
-            v.currentLng += (Math.random() - 0.5) * 0.0004;
-          }
-
-          // Micro speed variation
-          v.speed = Math.max(40.0, Math.min(88.0, v.speed + (Math.random() - 0.5) * 1.5));
-          v.instantConsumption = 25.0 + (v.speed / 80.0) * 8.0;
-
-          // Micro IMU vibration noise
-          v.pitch += (Math.random() - 0.5) * 0.1;
-          v.roll += (Math.random() - 0.5) * 0.1;
-
-          // Push to historical trend queues
-          const nowStr = new Date().toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-          if (v.history) {
-            v.history.timestamps.push(nowStr);
-            if (v.history.timestamps.length > 20) v.history.timestamps.shift();
-
-            v.history.speed.push(v.speed);
-            if (v.history.speed.length > 20) v.history.speed.shift();
-
-            v.history.acceleration.push((Math.random() - 0.5) * 0.4);
-            if (v.history.acceleration.length > 20) v.history.acceleration.shift();
-          }
-        }
-      });
-
-      this.notify();
-    }, 2000);
+  updateFleetArray() {
+    // Sync array if modified
+    this.notify();
   }
 }
 
-// Global Singleton Instance
+window.TelemetrySimulationEngine = TelemetrySimulationEngine;
 window.telemetryEngine = new TelemetrySimulationEngine();

@@ -1,9 +1,7 @@
 /**
  * Slide 1: Main Overview Dashboard Component
- * KPIs: Vehicle Name, Driver Name, Engine ON/OFF, Speed, Battery
- * Live Location: GPS Map Integration (Leaflet / Google Dark Theme with Offline Fallback)
- * Editable Destination Block: Start & Stop Location inputs
- * Zero-Blinking In-Place Telemetry Updates
+ * Version 2: Enhanced Destination & Trip Block Card
+ * Features: Trip No, Date, Start/End Timestamps, Preset & Custom Dropdown Selectors for Driver, Start (Pick), and Drop (Destination) Locations.
  */
 
 class OverviewComponent {
@@ -18,10 +16,21 @@ class OverviewComponent {
 
   render(container, data) {
     const statusClass = (data.status || 'Running').toLowerCase();
+    const defaultLocations = (window.telemetryEngine && window.telemetryEngine.defaultLocations) ? window.telemetryEngine.defaultLocations : [
+      'Gothenburg Logistics Hub', 'Stockholm Freight Terminal', 'Malmö Transport Depot', 'Jönköping Cargo Hub'
+    ];
+    const defaultDrivers = (window.telemetryEngine && window.telemetryEngine.defaultDrivers) ? window.telemetryEngine.defaultDrivers : [
+      'Erik Lindqvist', 'Lars Svensson', 'Astrid Nilsson', 'Johan Berg', 'Karin Olsson'
+    ];
+
+    // Ensure active vehicle locations & driver are in default lists
+    if (!defaultLocations.includes(data.startLocation)) defaultLocations.unshift(data.startLocation);
+    if (!defaultLocations.includes(data.destination)) defaultLocations.push(data.destination);
+    if (!defaultDrivers.includes(data.driver)) defaultDrivers.unshift(data.driver);
     
     // 1. In-place update if overview layout is already rendered to PREVENT BLINKING!
     if (container.querySelector('#ov-val-veh')) {
-      this.updateInPlace(data, statusClass);
+      this.updateInPlace(data, statusClass, defaultLocations, defaultDrivers);
       return;
     }
 
@@ -90,61 +99,89 @@ class OverviewComponent {
         </div>
       </div>
 
-      <!-- Main Map & Editable Location Split View -->
+      <!-- Main Map & Enhanced Destination Block Split View -->
       <div class="grid-container grid-cols-12">
-        <div class="card span-8">
+        <div class="card span-7">
           <div class="card-header">
             <span class="card-title"><i class="fa-solid fa-map-location-dot"></i> Live GPS Location Integration</span>
             <span class="card-tag ai">LIVE GPS / MAPS TILES</span>
           </div>
-          <div id="leaflet-map" style="height: 420px; width: 100%; border-radius: var(--radius-md); background: #070a12;"></div>
+          <div id="leaflet-map" style="height: 440px; width: 100%; border-radius: var(--radius-md); background: #070a12;"></div>
         </div>
 
-        <!-- Editable Start & Stop Destination Block -->
-        <div class="card span-4" style="display: flex; flex-direction: column; gap: 16px;">
+        <!-- Destination & Trip Block Card with Dropdown Selectors -->
+        <div class="card span-5" style="display: flex; flex-direction: column; gap: 14px;">
           <div class="card-header">
-            <span class="card-title"><i class="fa-solid fa-route"></i> Destination Block (Editable)</span>
-            <span class="card-tag sensor">ROUTE CONFIG</span>
+            <span class="card-title"><i class="fa-solid fa-route"></i> Destination & Trip Block</span>
+            <span class="card-tag sensor">TRIP CONFIG</span>
           </div>
 
-          <!-- Editable Start Location -->
-          <div class="edit-input-group">
-            <label><i class="fa-solid fa-circle-dot" style="color: var(--success);"></i> Start Location:</label>
-            <input type="text" id="input-start-loc" class="edit-input-field" value="${data.startLocation}" />
-          </div>
-
-          <!-- Editable Stop Destination -->
-          <div class="edit-input-group">
-            <label><i class="fa-solid fa-location-dot" style="color: var(--danger);"></i> Stop Destination:</label>
-            <input type="text" id="input-dest-loc" class="edit-input-field" value="${data.destination}" />
-          </div>
-
-          <button class="sim-btn active" style="justify-content: center; padding: 10px; margin-top: 4px;" onclick="window.appInstance.updateRouteLocations()">
-            <i class="fa-solid fa-arrows-rotate"></i> Update Route Locations
-          </button>
-
-          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; margin-top: 8px;">
-            <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Current Live Position</div>
-            <div style="font-size: 14px; font-weight: 700; color: #fff; margin-top: 2px;" id="ov-val-locname">${data.locationName}</div>
-            <div style="font-size: 11px; font-family: monospace; color: var(--primary); margin-top: 4px;" id="ov-val-coords">
-              LAT: ${data.currentLat.toFixed(5)}, LNG: ${data.currentLng.toFixed(5)}
+          <!-- Trip Info Sub-Card -->
+          <div style="background: rgba(0, 210, 255, 0.06); border: 1px solid var(--border-glow); border-radius: var(--radius-md); padding: 12px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+              <div>
+                <span style="font-size: 10px; color: var(--primary); font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;">TRIP NUMBER</span>
+                <div style="font-size: 18px; font-weight: 900; color: #fff;" id="ov-val-tripno">${data.tripNo || '#TRIP-026'}</div>
+              </div>
+              <div style="text-align: right;">
+                <span style="font-size: 10px; color: var(--text-muted); font-weight: 800; text-transform: uppercase;">DATE</span>
+                <div style="font-size: 13px; font-weight: 700; color: var(--text-main);" id="ov-val-tripdate">${data.tripDate || '2026-08-18'}</div>
+              </div>
+            </div>
+            
+            <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px; border-top: 1px dashed var(--border-color); padding-top: 8px; margin-top: 4px;">
+              <div>
+                <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;"><i class="fa-regular fa-clock" style="color: var(--success);"></i> Start Time:</span>
+                <div style="font-size: 13px; font-weight: 700; color: var(--success);" id="ov-val-starttime">${data.startTime || '08:30 AM'}</div>
+              </div>
+              <div>
+                <span style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;"><i class="fa-solid fa-flag-checkered" style="color: var(--warning);"></i> End Time (Est):</span>
+                <div style="font-size: 13px; font-weight: 700; color: var(--warning);" id="ov-val-endtime">${data.endTime || '04:45 PM'}</div>
+              </div>
             </div>
           </div>
 
-          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px;">
+          <!-- Dropdown 1: Driver Selection -->
+          <div class="edit-input-group">
+            <label><i class="fa-solid fa-user-gear" style="color: var(--primary);"></i> Assigned Driver:</label>
+            <select id="select-driver-name" class="edit-input-field" onchange="window.appInstance.onDriverSelect(this.value)">
+              ${defaultDrivers.map(d => `<option value="${d}" ${d === data.driver ? 'selected' : ''}>${d}</option>`).join('')}
+              <option value="ADD_NEW_DRIVER" style="color: var(--primary); font-weight: 700;">+ Add New Driver...</option>
+            </select>
+          </div>
+
+          <!-- Dropdown 2: Start Location (Pick) -->
+          <div class="edit-input-group">
+            <label><i class="fa-solid fa-circle-dot" style="color: var(--success);"></i> Start Location (Pick):</label>
+            <select id="select-start-loc" class="edit-input-field" onchange="window.appInstance.onStartLocSelect(this.value)">
+              ${defaultLocations.map(l => `<option value="${l}" ${l === data.startLocation ? 'selected' : ''}>${l}</option>`).join('')}
+              <option value="ADD_NEW_START" style="color: var(--success); font-weight: 700;">+ Add New Start Location...</option>
+            </select>
+          </div>
+
+          <!-- Dropdown 3: Drop Location (Destination) -->
+          <div class="edit-input-group">
+            <label><i class="fa-solid fa-location-dot" style="color: var(--danger);"></i> Drop Location (Destination):</label>
+            <select id="select-dest-loc" class="edit-input-field" onchange="window.appInstance.onDestLocSelect(this.value)">
+              ${defaultLocations.map(l => `<option value="${l}" ${l === data.destination ? 'selected' : ''}>${l}</option>`).join('')}
+              <option value="ADD_NEW_DEST" style="color: var(--danger); font-weight: 700;">+ Add New Drop Location...</option>
+            </select>
+          </div>
+
+          <div style="background: rgba(0,0,0,0.3); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 10px;">
             <div style="display: flex; justify-content: space-between; align-items: baseline;">
               <div>
-                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Compliance</div>
-                <div style="font-size: 14px; font-weight: 800; color: ${data.routeCompliance === 'Compliant' ? 'var(--success)' : 'var(--danger)'};" id="ov-val-comp">
+                <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Compliance</div>
+                <div style="font-size: 13px; font-weight: 800; color: ${data.routeCompliance === 'Compliant' ? 'var(--success)' : 'var(--danger)'};" id="ov-val-comp">
                   ${data.routeCompliance}
                 </div>
               </div>
               <div style="text-align: right;">
-                <div style="font-size: 11px; color: var(--text-muted); text-transform: uppercase;">Distance Remaining</div>
-                <div style="font-size: 14px; font-weight: 800; color: var(--primary);" id="ov-val-dist">${data.distanceRemaining} km</div>
+                <div style="font-size: 10px; color: var(--text-muted); text-transform: uppercase;">Distance Remaining</div>
+                <div style="font-size: 13px; font-weight: 800; color: var(--primary);" id="ov-val-dist">${data.distanceRemaining} km</div>
               </div>
             </div>
-            <div style="margin-top: 8px; font-size: 12px; color: var(--success); font-weight: 600;" id="ov-val-eta">
+            <div style="margin-top: 6px; font-size: 11px; color: var(--success); font-weight: 600;" id="ov-val-eta">
               <i class="fa-solid fa-clock"></i> Estimated Arrival: ${data.eta}
             </div>
           </div>
@@ -157,7 +194,7 @@ class OverviewComponent {
     }, 100);
   }
 
-  updateInPlace(data, statusClass) {
+  updateInPlace(data, statusClass, defaultLocations, defaultDrivers) {
     const elVeh = document.getElementById('ov-val-veh');
     if (elVeh) elVeh.textContent = data.vehicleId;
 
@@ -179,11 +216,17 @@ class OverviewComponent {
     const elBat = document.getElementById('ov-val-bat');
     if (elBat) elBat.innerHTML = `${data.batteryVoltage} <span class="metric-unit">V</span>`;
 
-    const elLocName = document.getElementById('ov-val-locname');
-    if (elLocName) elLocName.textContent = data.locationName;
+    const elTripNo = document.getElementById('ov-val-tripno');
+    if (elTripNo) elTripNo.textContent = data.tripNo || '#TRIP-026';
 
-    const elCoords = document.getElementById('ov-val-coords');
-    if (elCoords) elCoords.textContent = `LAT: ${data.currentLat.toFixed(5)}, LNG: ${data.currentLng.toFixed(5)}`;
+    const elTripDate = document.getElementById('ov-val-tripdate');
+    if (elTripDate) elTripDate.textContent = data.tripDate || '2026-08-18';
+
+    const elStartT = document.getElementById('ov-val-starttime');
+    if (elStartT) elStartT.textContent = data.startTime || '08:30 AM';
+
+    const elEndT = document.getElementById('ov-val-endtime');
+    if (elEndT) elEndT.textContent = data.endTime || '04:45 PM';
 
     const elDist = document.getElementById('ov-val-dist');
     if (elDist) elDist.textContent = `${data.distanceRemaining} km`;
