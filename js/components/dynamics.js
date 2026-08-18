@@ -3,7 +3,7 @@
  * Features:
  * 1. Compact Resized AI Driver Score Card
  * 2. Real 3D WebGL MPU6050 IMU Visualizer Canvas (Three.js 3D Truck Model smooth real-time rotation matching Pitch, Roll & Yaw angles)
- * 3. Acceleration (m/s²) vs Time Graph (1-Minute Intervals)
+ * 3. Acceleration (m/s²) vs Time Graph with 1-Second Time Intervals (Real-time 1 Hz MPU6050 Accelerometer Stream)
  */
 
 class DynamicsComponent {
@@ -17,6 +17,26 @@ class DynamicsComponent {
     this.targetPitch = 0;
     this.targetRoll = 0;
     this.targetYaw = 0;
+    
+    // 1-Second Interval Rolling Telemetry Buffer
+    this.oneSecBuffer = {
+      labels: [],
+      data: []
+    };
+    this.init1SecBuffer();
+  }
+
+  init1SecBuffer() {
+    const now = new Date();
+    this.oneSecBuffer.labels = [];
+    this.oneSecBuffer.data = [];
+
+    for (let i = 9; i >= 0; i--) {
+      const t = new Date(now.getTime() - (i * 1000));
+      const timeStr = t.toTimeString().split(' ')[0];
+      this.oneSecBuffer.labels.push(timeStr);
+      this.oneSecBuffer.data.push(parseFloat((0.10 + (Math.random() * 0.10 - 0.05)).toFixed(2)));
+    }
   }
 
   render(container, data) {
@@ -131,14 +151,14 @@ class DynamicsComponent {
         </div>
       </div>
 
-      <!-- Acceleration vs Time (1-Minute Intervals) Chart Card -->
+      <!-- Acceleration vs Time (1-Second Intervals) Chart Card -->
       <div class="card span-12" style="padding: 20px;">
         <div class="card-header" style="margin-bottom: 16px;">
-          <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-wave-square"></i> Longitudinal Acceleration (m/s²) vs Time (1-Minute Intervals)</span>
-          <span class="card-tag sensor">MPU6050 1-MIN SAMPLES</span>
+          <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-wave-square"></i> Real-Time Acceleration (m/s²) vs Time (1-Second Time Intervals)</span>
+          <span class="card-tag sensor">MPU6050 1 Hz STREAM</span>
         </div>
         <div style="height: 260px; position: relative;">
-          <canvas id="chart-accel-1min"></canvas>
+          <canvas id="chart-accel-1sec"></canvas>
         </div>
       </div>
     `;
@@ -148,7 +168,7 @@ class DynamicsComponent {
     setTimeout(() => {
       this.drawScoreGauge(data.drivingScore, scoreColor);
       this.init3DVisualizer(data);
-      this.render1MinAccelChart(data);
+      this.render1SecAccelChart(data);
     }, 100);
   }
 
@@ -186,7 +206,7 @@ class DynamicsComponent {
 
     this.drawScoreGauge(data.drivingScore, scoreColor);
     this.update3DOrientation(data.pitch, data.roll, data.yaw);
-    this.update1MinAccelChart(data);
+    this.update1SecAccelChart(data);
   }
 
   // Initialize Three.js 3D WebGL Truck Model Visualizer
@@ -353,28 +373,24 @@ class DynamicsComponent {
     ctx.stroke();
   }
 
-  render1MinAccelChart(data) {
+  render1SecAccelChart(data) {
     if (typeof Chart === 'undefined') return;
 
-    const ctxAccel = document.getElementById('chart-accel-1min');
+    const ctxAccel = document.getElementById('chart-accel-1sec');
     if (!ctxAccel) return;
     if (this.accelChart) this.accelChart.destroy();
-
-    // 1-Minute Interval Timestamps
-    const oneMinLabels = ['10:00', '10:01', '10:02', '10:03', '10:04', '10:05'];
-    const accelData = [0.12, 0.25, 0.18, -0.35, 0.05, data.acceleration || 0.15];
 
     this.accelChart = new Chart(ctxAccel, {
       type: 'line',
       data: {
-        labels: oneMinLabels,
+        labels: this.oneSecBuffer.labels,
         datasets: [{
           label: 'Longitudinal Acceleration (m/s²)',
-          data: accelData,
+          data: this.oneSecBuffer.data,
           borderColor: '#3a86ff',
-          backgroundColor: 'rgba(58, 134, 255, 0.12)',
+          backgroundColor: 'rgba(58, 134, 255, 0.15)',
           fill: true,
-          tension: 0.3,
+          tension: 0.35,
           borderWidth: 2.5,
           pointRadius: 4,
           pointBackgroundColor: '#00d2ff'
@@ -383,14 +399,15 @@ class DynamicsComponent {
       options: {
         responsive: true,
         maintainAspectRatio: false,
+        animation: { duration: 300 },
         plugins: {
           legend: { display: false }
         },
         scales: {
           x: { 
             grid: { color: 'rgba(255,255,255,0.05)' }, 
-            ticks: { color: '#8a99ad', font: { size: 12 } },
-            title: { display: true, text: 'Time (1-Minute Intervals)', color: '#5c6b80', font: { size: 11 } }
+            ticks: { color: '#8a99ad', font: { size: 11 } },
+            title: { display: true, text: 'Real-Time 1-Second Time Intervals (hh:mm:ss)', color: '#5c6b80', font: { size: 11 } }
           },
           y: { 
             grid: { color: 'rgba(255,255,255,0.05)' }, 
@@ -404,12 +421,24 @@ class DynamicsComponent {
     });
   }
 
-  update1MinAccelChart(data) {
-    if (this.accelChart) {
-      const currentData = this.accelChart.data.datasets[0].data;
-      currentData[currentData.length - 1] = data.acceleration;
-      this.accelChart.update('none');
+  update1SecAccelChart(data) {
+    if (!this.accelChart) return;
+
+    const now = new Date();
+    const timeStr = now.toTimeString().split(' ')[0];
+
+    // Push new 1-second sample & shift rolling window
+    this.oneSecBuffer.labels.push(timeStr);
+    this.oneSecBuffer.data.push(parseFloat(data.acceleration.toFixed(2)));
+
+    if (this.oneSecBuffer.labels.length > 10) {
+      this.oneSecBuffer.labels.shift();
+      this.oneSecBuffer.data.shift();
     }
+
+    this.accelChart.data.labels = this.oneSecBuffer.labels;
+    this.accelChart.data.datasets[0].data = this.oneSecBuffer.data;
+    this.accelChart.update('none');
   }
 }
 

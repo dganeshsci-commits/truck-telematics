@@ -1,18 +1,22 @@
 /**
- * Slide 8: Fleet Management Component
+ * Slide 7: Fleet Management Component
  * Driver Assignment, Add New Driver & Vehicle Form Modal + Inline Detail Editing
+ * Features: Volvo Heavy Logistics Fleet Management Official Logo Badge
  */
 
 class FleetComponent {
   render(container, data, fleet, alerts) {
     container.innerHTML = `
-      <div class="page-title-row" style="margin-bottom: 24px;">
-        <div>
-          <h2><i class="fa-solid fa-truck-fleet"></i> 8. Fleet Management & Driver Assignment</h2>
-          <div class="page-subtitle">List of active drivers & vehicles with inline driver editing & new driver creation</div>
+      <div class="page-title-row" style="margin-bottom: 24px; align-items: center;">
+        <div style="display: flex; align-items: center; gap: 16px;">
+          <img src="assets/volvo_fleet_logo.jpg" alt="Volvo Fleet Management Logo" style="width: 56px; height: 56px; border-radius: 12px; object-fit: cover; border: 1px solid var(--border-glow); box-shadow: 0 0 15px var(--primary-glow);" />
+          <div>
+            <h2 style="font-size: 22px;"><i class="fa-solid fa-truck-fleet" style="color: var(--primary);"></i> 7. Fleet Management & Driver Assignment</h2>
+            <div class="page-subtitle" style="font-size: 13px;">List of active drivers & vehicles with inline driver editing & new driver creation</div>
+          </div>
         </div>
         <div>
-          <button class="sim-btn active" style="padding: 8px 16px; font-size: 13px;" onclick="window.appInstance.toggleAddDriverModal(true)">
+          <button class="sim-btn active" style="padding: 10px 20px; font-size: 13px;" onclick="window.appInstance.toggleAddDriverModal(true)">
             <i class="fa-solid fa-user-plus"></i> + Add New Driver & Vehicle
           </button>
         </div>
