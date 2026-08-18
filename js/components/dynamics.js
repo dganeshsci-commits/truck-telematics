@@ -1,39 +1,39 @@
 /**
- * Slide 2: Dedicated Vehicle Dynamics Component
- * MPU6050 6-DOF IMU Telematics, Interactive 3D Volvo Truck Model (Smooth Non-Blinking & Flat Container)
+ * Slide 2: Truck Dynamics Component
+ * Features:
+ * 1. Compact Resized AI Driver Score Card
+ * 2. Real 3D WebGL MPU6050 IMU Visualizer Canvas (Three.js 3D Truck Model smooth real-time rotation matching Pitch, Roll & Yaw angles)
+ * 3. Acceleration (m/s²) vs Time Graph (1-Minute Intervals)
  */
 
 class DynamicsComponent {
   constructor() {
-    this.speedChart = null;
     this.accelChart = null;
-    this.currentAngleIndex = 0;
-
-    // Sketchfab camera angle embeds / presets
-    this.angleParams = [
-      'autostart=1&ui_controls=1&ui_infos=0', // Default 3/4 Perspective
-      'autostart=1&ui_controls=1&camera=0,3,1.5,0,0,0', // Front View
-      'autostart=1&ui_controls=1&camera=4,0,1,0,0,0', // Side Profile
-      'autostart=1&ui_controls=1&camera=-3,-3,2,0,0,0', // Rear Quarter
-      'autostart=1&ui_controls=1&camera=0,0,5,0,0,0' // Top Down View
-    ];
+    this.scene = null;
+    this.camera = null;
+    this.renderer = null;
+    this.truckMeshGroup = null;
+    this.animFrameId = null;
+    this.targetPitch = 0;
+    this.targetRoll = 0;
+    this.targetYaw = 0;
   }
 
   render(container, data) {
     const scoreColor = data.drivingScore >= 80 ? 'var(--success)' : (data.drivingScore >= 60 ? 'var(--warning)' : 'var(--danger)');
 
     // 1. If structure already built, perform IN-PLACE DOM update to eliminate blinking completely!
-    if (container.querySelector('#sketchfab-truck-iframe')) {
+    if (container.querySelector('#imu-3d-canvas')) {
       this.updateInPlace(data, scoreColor);
       return;
     }
 
-    // 2. Initial Full Render (Only built once when tab is opened!)
+    // 2. Initial Full Render
     container.innerHTML = `
-      <div class="page-title-row" style="margin-bottom: 24px;">
+      <div class="page-title-row" style="margin-bottom: 20px;">
         <div>
-          <h2 style="font-size: 22px;"><i class="fa-solid fa-gauge-high"></i> 2. Truck Dynamics & Interactive 3D Inspection</h2>
-          <div class="page-subtitle" style="font-size: 14px;">Real-time vehicle physics from MPU6050 6-DOF IMU + Interactive 3D Volvo Truck Model</div>
+          <h2 style="font-size: 22px;"><i class="fa-solid fa-gauge-high"></i> 2. Truck Dynamics & 3D WebGL IMU Visualizer</h2>
+          <div class="page-subtitle" style="font-size: 14px;">MPU6050 6-DOF IMU Telematics + Real-Time 3D Volvo Truck Rotation</div>
         </div>
         <div style="display: flex; gap: 10px;">
           <span class="event-pill ${data.speed > 85 ? 'alert' : 'ok'}" id="dyn-speed-pill">
@@ -45,134 +45,100 @@ class DynamicsComponent {
         </div>
       </div>
 
-      <!-- Top Score & KPI Cards -->
-      <div class="grid-container grid-cols-12" style="margin-bottom: 24px;">
-        <!-- AI Driving Score Canvas Card -->
-        <div class="card span-4" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 20px;">
-          <div class="card-header" style="width: 100%; margin-bottom: 12px;">
-            <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-brain"></i> AI Driving Score</span>
-            <span class="card-tag ai">MPU6050 + RPI-5</span>
+      <!-- Resized Compact Top KPI Cards Row -->
+      <div class="grid-container grid-cols-12" style="margin-bottom: 20px;">
+        <!-- Compact Resized AI Driving Score Card -->
+        <div class="card span-3" style="display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; padding: 14px;">
+          <div class="card-header" style="width: 100%; margin-bottom: 8px; padding-bottom: 6px;">
+            <span class="card-title" style="font-size: 13px;"><i class="fa-solid fa-brain"></i> AI Driver Score</span>
+            <span class="card-tag ai" style="font-size: 9px; padding: 1px 6px;">RPI-5</span>
           </div>
 
-          <div class="gauge-container" style="margin: 10px 0;">
-            <canvas id="driving-score-gauge" width="180" height="180"></canvas>
+          <div class="gauge-container" style="width: 110px; height: 110px; margin: 4px 0;">
+            <canvas id="driving-score-gauge" width="110" height="110"></canvas>
             <div class="gauge-score">
-              <div class="num" id="dyn-score-num" style="color: ${scoreColor}; font-size: 38px;">${data.drivingScore}</div>
-              <div class="label" style="font-size: 11px;">out of 100</div>
+              <div class="num" id="dyn-score-num" style="color: ${scoreColor}; font-size: 26px;">${data.drivingScore}</div>
+              <div class="label" style="font-size: 9px;">/ 100</div>
             </div>
           </div>
 
-          <div style="font-size: 14px; font-weight: 700; color: #fff;">Status: <span id="dyn-score-status" style="color: ${scoreColor};">${data.drivingStatus}</span></div>
-          <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Evaluates smooth cornering, braking & speed limits.</div>
+          <div style="font-size: 12px; font-weight: 700; color: #fff;">Status: <span id="dyn-score-status" style="color: ${scoreColor};">${data.drivingStatus}</span></div>
         </div>
 
         <!-- Dynamic Physical Parameters Grid -->
-        <div class="span-8 grid-container grid-cols-3">
-          <div class="card metric-box" style="padding: 20px;">
+        <div class="span-9 grid-container grid-cols-3">
+          <div class="card metric-box" style="padding: 16px;">
             <div class="card-header">
-              <span class="card-title">Current Speed</span>
+              <span class="card-title" style="font-size: 13px;">Current Speed</span>
               <span class="card-tag sensor">CAN / GPS</span>
             </div>
-            <div class="metric-val" id="dyn-val-speed" style="font-size: 32px;">${data.speed.toFixed(1)} <span class="metric-unit">km/h</span></div>
-            <div class="metric-label">Governor Limit: ${data.maxSpeed} km/h</div>
-            <div class="metric-trend up"><i class="fa-solid fa-chart-line"></i> Avg: ${data.avgSpeed} km/h</div>
+            <div class="metric-val" id="dyn-val-speed" style="font-size: 28px;">${data.speed.toFixed(1)} <span class="metric-unit">km/h</span></div>
+            <div class="metric-label" style="font-size: 11px;">Limit: ${data.maxSpeed} km/h</div>
+            <div class="metric-trend up" style="font-size: 10px;"><i class="fa-solid fa-chart-line"></i> Avg: ${data.avgSpeed} km/h</div>
           </div>
 
-          <div class="card metric-box" style="padding: 20px;">
+          <div class="card metric-box" style="padding: 16px;">
             <div class="card-header">
-              <span class="card-title">Longitudinal Accel</span>
+              <span class="card-title" style="font-size: 13px;">Longitudinal Accel</span>
               <span class="card-tag sensor">MPU6050 IMU</span>
             </div>
-            <div class="metric-val" id="dyn-val-accel" style="font-size: 32px;">${data.acceleration.toFixed(2)} <span class="metric-unit">m/s²</span></div>
-            <div class="metric-label">Decel Rate: ${data.deceleration} m/s²</div>
-            <div class="metric-trend"><i class="fa-solid fa-bolt"></i> Braking Int: ${(data.brakingIntensity * 100).toFixed(0)}%</div>
+            <div class="metric-val" id="dyn-val-accel" style="font-size: 28px;">${data.acceleration.toFixed(2)} <span class="metric-unit">m/s²</span></div>
+            <div class="metric-label" style="font-size: 11px;">Decel: ${data.deceleration} m/s²</div>
+            <div class="metric-trend" style="font-size: 10px;"><i class="fa-solid fa-bolt"></i> Braking: ${(data.brakingIntensity * 100).toFixed(0)}%</div>
           </div>
 
-          <div class="card metric-box" style="padding: 20px;">
+          <div class="card metric-box" style="padding: 16px;">
             <div class="card-header">
-              <span class="card-title">IMU Attitude Matrix</span>
-              <span class="card-tag ai">6-DOF ANGLE</span>
+              <span class="card-title" style="font-size: 13px;">IMU Attitude Angles</span>
+              <span class="card-tag ai">6-DOF MATRIX</span>
             </div>
-            <div style="display: flex; flex-direction: column; gap: 6px; font-size: 13px; margin-top: 4px;">
-              <div style="display:flex; justify-content:space-between;"><span>Pitch Incline:</span> <strong style="color:var(--primary);" id="dyn-val-pitch">${data.pitch > 0 ? '+' : ''}${data.pitch.toFixed(1)}°</strong></div>
-              <div style="display:flex; justify-content:space-between;"><span>Roll Incline:</span> <strong style="color:var(--success);" id="dyn-val-roll">${data.roll > 0 ? '+' : ''}${data.roll.toFixed(1)}°</strong></div>
-              <div style="display:flex; justify-content:space-between;"><span>Yaw Heading:</span> <strong style="color:var(--warning);" id="dyn-val-yaw">${data.yaw.toFixed(1)}°</strong></div>
-              <div style="display:flex; justify-content:space-between;"><span>Harsh Events:</span> <strong style="color:var(--danger);" id="dyn-val-harsh">${data.harshAccelEvents + data.harshBrakingEvents}</strong></div>
+            <div style="display: flex; flex-direction: column; gap: 4px; font-size: 12px; margin-top: 2px;">
+              <div style="display:flex; justify-space-between;"><span>Pitch Incline:</span> <strong style="color:var(--primary);" id="dyn-val-pitch">${data.pitch > 0 ? '+' : ''}${data.pitch.toFixed(1)}°</strong></div>
+              <div style="display:flex; justify-space-between;"><span>Roll Incline:</span> <strong style="color:var(--success);" id="dyn-val-roll">${data.roll > 0 ? '+' : ''}${data.roll.toFixed(1)}°</strong></div>
+              <div style="display:flex; justify-space-between;"><span>Yaw Heading:</span> <strong style="color:var(--warning);" id="dyn-val-yaw">${data.yaw.toFixed(1)}°</strong></div>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Embedded Interactive 3D Model Card (Flat Bounding Box - No Container Tilting!) -->
-      <div class="card span-12" style="margin-bottom: 24px; padding: 20px;">
-        <div class="card-header" style="margin-bottom: 16px;">
-          <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-cube"></i> Interactive Volvo FH Series 3D Truck Model Viewer</span>
-          <div style="display: flex; gap: 8px;">
-            <span class="card-tag ai" id="dyn-imu-tag">IMU PITCH: ${data.pitch.toFixed(1)}° | ROLL: ${data.roll.toFixed(1)}°</span>
+      <!-- Real-Time 3D WebGL IMU Visualizer Canvas Card -->
+      <div class="card span-12" style="margin-bottom: 20px; padding: 18px;">
+        <div class="card-header" style="margin-bottom: 12px;">
+          <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-cube"></i> Real-Time WebGL 3D Truck IMU Sensor Orientation Visualizer</span>
+          <div style="display: flex; gap: 10px; align-items: center;">
+            <span class="card-tag sensor" id="dyn-imu-matrix-tag">MPU6050 PITCH: ${data.pitch.toFixed(1)}° | ROLL: ${data.roll.toFixed(1)}° | YAW: ${data.yaw.toFixed(1)}°</span>
+            <button class="sim-btn ${data.pitch > 4.0 ? 'active' : ''}" style="padding: 4px 10px; font-size: 11px;" onclick="window.telemetryEngine.toggleSteepIncline()">
+              <i class="fa-solid fa-mountain"></i> ${data.pitch > 4.0 ? 'Reset Flat Ground' : 'Simulate Steep Slope Incline (+6.8° Pitch)'}
+            </button>
           </div>
         </div>
 
-        <div style="
-          height: 460px; 
+        <!-- 3D WebGL Canvas Holder -->
+        <div id="imu-3d-canvas-container" style="
+          height: 380px; 
           width: 100%; 
           border-radius: var(--radius-md); 
           overflow: hidden; 
-          background: #070a12; 
+          background: radial-gradient(circle at 50% 50%, #0d1627, #05070d); 
           position: relative;
           border: 1px solid var(--border-color);
         ">
-          <iframe 
-            id="sketchfab-truck-iframe"
-            title="Volvo FH series Truck 3D Model" 
-            src="https://sketchfab.com/models/748a51c9d1034efa896a2c917cad434f/embed?autostart=1&internal=1&tracking=0&ui_ar=0&ui_infos=0&ui_snapshots=1&ui_stop=0&ui_theatre=1&ui_watermark=0" 
-            style="width: 100%; height: 100%; border: none;"
-            allow="autoplay; fullscreen; xr-spatial-tracking"
-            allowfullscreen>
-          </iframe>
-        </div>
+          <canvas id="imu-3d-canvas" style="width: 100%; height: 100%; display: block;"></canvas>
 
-        <!-- 3D Orbit View Control Bar -->
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-top: 14px; flex-wrap: wrap; gap: 10px;">
-          <div style="font-size: 12px; color: var(--text-muted);">
-            <i class="fa-solid fa-hand-pointer" style="color: var(--primary);"></i> Drag left/right with mouse or finger to rotate 3D truck 360°.
-          </div>
-          <div style="display: flex; gap: 6px;">
-            <button class="sim-btn" onclick="window.dynamicsComp.setCameraAngle(0)">
-              <i class="fa-solid fa-cube"></i> 3/4 View
-            </button>
-            <button class="sim-btn" onclick="window.dynamicsComp.setCameraAngle(1)">
-              <i class="fa-solid fa-truck-front"></i> Front
-            </button>
-            <button class="sim-btn" onclick="window.dynamicsComp.setCameraAngle(2)">
-              <i class="fa-solid fa-truck-side"></i> Side
-            </button>
-            <button class="sim-btn" onclick="window.dynamicsComp.setCameraAngle(3)">
-              <i class="fa-solid fa-truck"></i> Rear
-            </button>
+          <div style="position: absolute; bottom: 12px; left: 16px; font-size: 11px; color: var(--text-muted); background: rgba(0,0,0,0.6); padding: 4px 12px; border-radius: 20px; backdrop-filter: blur(4px);">
+            <i class="fa-solid fa-arrows-spin" style="color: var(--primary);"></i> WebGL 3D Vehicle rotation driven live by MPU6050 Euler attitude matrix.
           </div>
         </div>
       </div>
 
-      <!-- Real-Time Dynamics Charts -->
-      <div class="grid-container grid-cols-2">
-        <div class="card" style="padding: 20px;">
-          <div class="card-header" style="margin-bottom: 16px;">
-            <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-chart-line"></i> Speed vs Time (km/h)</span>
-            <span class="card-tag sensor">REALTIME</span>
-          </div>
-          <div style="height: 260px; position: relative;">
-            <canvas id="chart-speed"></canvas>
-          </div>
+      <!-- Acceleration vs Time (1-Minute Intervals) Chart Card -->
+      <div class="card span-12" style="padding: 20px;">
+        <div class="card-header" style="margin-bottom: 16px;">
+          <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-wave-square"></i> Longitudinal Acceleration (m/s²) vs Time (1-Minute Intervals)</span>
+          <span class="card-tag sensor">MPU6050 1-MIN SAMPLES</span>
         </div>
-
-        <div class="card" style="padding: 20px;">
-          <div class="card-header" style="margin-bottom: 16px;">
-            <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-wave-square"></i> Acceleration (m/s²) vs Time</span>
-            <span class="card-tag sensor">MPU6050 50Hz</span>
-          </div>
-          <div style="height: 260px; position: relative;">
-            <canvas id="chart-accel"></canvas>
-          </div>
+        <div style="height: 260px; position: relative;">
+          <canvas id="chart-accel-1min"></canvas>
         </div>
       </div>
     `;
@@ -181,11 +147,12 @@ class DynamicsComponent {
 
     setTimeout(() => {
       this.drawScoreGauge(data.drivingScore, scoreColor);
-      this.renderCharts(data);
+      this.init3DVisualizer(data);
+      this.render1MinAccelChart(data);
     }, 100);
   }
 
-  // Smooth In-Place DOM Update (Zero Blinking / Flashing!)
+  // Smooth In-Place DOM & 3D Telemetry Update (Zero Blinking!)
   updateInPlace(data, scoreColor) {
     const valSpeed = document.getElementById('dyn-val-speed');
     if (valSpeed) valSpeed.innerHTML = `${data.speed.toFixed(1)} <span class="metric-unit">km/h</span>`;
@@ -202,9 +169,6 @@ class DynamicsComponent {
     const valYaw = document.getElementById('dyn-val-yaw');
     if (valYaw) valYaw.textContent = `${data.yaw.toFixed(1)}°`;
 
-    const valHarsh = document.getElementById('dyn-val-harsh');
-    if (valHarsh) valHarsh.textContent = `${data.harshAccelEvents + data.harshBrakingEvents}`;
-
     const scoreNum = document.getElementById('dyn-score-num');
     if (scoreNum) {
       scoreNum.textContent = data.drivingScore;
@@ -217,40 +181,165 @@ class DynamicsComponent {
       scoreStatus.style.color = scoreColor;
     }
 
-    const imuTag = document.getElementById('dyn-imu-tag');
-    if (imuTag) imuTag.textContent = `IMU PITCH: ${data.pitch.toFixed(1)}° | ROLL: ${data.roll.toFixed(1)}°`;
+    const imuTag = document.getElementById('dyn-imu-matrix-tag');
+    if (imuTag) imuTag.textContent = `MPU6050 PITCH: ${data.pitch.toFixed(1)}° | ROLL: ${data.roll.toFixed(1)}° | YAW: ${data.yaw.toFixed(1)}°`;
 
     this.drawScoreGauge(data.drivingScore, scoreColor);
-    this.updateCharts(data);
+    this.update3DOrientation(data.pitch, data.roll, data.yaw);
+    this.update1MinAccelChart(data);
   }
 
-  setCameraAngle(index) {
-    this.currentAngleIndex = index;
-    const iframe = document.getElementById('sketchfab-truck-iframe');
-    if (!iframe) return;
+  // Initialize Three.js 3D WebGL Truck Model Visualizer
+  init3DVisualizer(data) {
+    const canvas = document.getElementById('imu-3d-canvas');
+    const container = document.getElementById('imu-3d-canvas-container');
+    if (!canvas || !container || typeof THREE === 'undefined') return;
 
-    const base = 'https://sketchfab.com/models/748a51c9d1034efa896a2c917cad434f/embed?';
-    const params = this.angleParams[index] || this.angleParams[0];
-    iframe.src = base + params;
+    const width = container.clientWidth || 800;
+    const height = container.clientHeight || 380;
+
+    // 1. Scene, Camera, Renderer
+    this.scene = new THREE.Scene();
+    this.camera = new THREE.PerspectiveCamera(45, width / height, 0.1, 1000);
+    this.camera.position.set(6, 4, 8);
+    this.camera.lookAt(0, 0, 0);
+
+    this.renderer = new THREE.WebGLRenderer({ canvas: canvas, antialias: true, alpha: true });
+    this.renderer.setSize(width, height);
+    this.renderer.setPixelRatio(window.devicePixelRatio || 1);
+
+    // 2. Lighting Setup
+    const ambientLight = new THREE.AmbientLight(0xffffff, 0.6);
+    this.scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0x00d2ff, 1.0);
+    dirLight1.position.set(10, 20, 10);
+    this.scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0x3a86ff, 0.8);
+    dirLight2.position.set(-10, 10, -10);
+    this.scene.add(dirLight2);
+
+    // 3. Grid Floor & Coordinates Guide
+    const gridHelper = new THREE.GridHelper(16, 16, 0x00d2ff, 0x1f2d42);
+    gridHelper.position.y = -1.2;
+    this.scene.add(gridHelper);
+
+    // 4. Construct 3D Volvo Heavy-Duty Truck Mesh Group
+    this.truckMeshGroup = new THREE.Group();
+
+    // Chassis Frame (Dark metallic rails)
+    const frameGeo = new THREE.BoxGeometry(1.6, 0.3, 4.2);
+    const frameMat = new THREE.MeshStandardMaterial({ color: 0x1a2332, roughness: 0.4, metalness: 0.8 });
+    const frameMesh = new THREE.Mesh(frameGeo, frameMat);
+    frameMesh.position.set(0, -0.2, 0);
+    this.truckMeshGroup.add(frameMesh);
+
+    // Driver Cab (Volvo Metallic Cyan/Teal)
+    const cabGeo = new THREE.BoxGeometry(1.5, 1.6, 1.4);
+    const cabMat = new THREE.MeshStandardMaterial({ color: 0x0099cc, roughness: 0.2, metalness: 0.6 });
+    const cabMesh = new THREE.Mesh(cabGeo, cabMat);
+    cabMesh.position.set(0, 0.75, 1.2);
+    this.truckMeshGroup.add(cabMesh);
+
+    // Windshield (Dark Tint Glass)
+    const glassGeo = new THREE.BoxGeometry(1.35, 0.7, 0.1);
+    const glassMat = new THREE.MeshStandardMaterial({ color: 0x07111e, roughness: 0.1, metalness: 0.9 });
+    const glassMesh = new THREE.Mesh(glassGeo, glassMat);
+    glassMesh.position.set(0, 0.9, 1.91);
+    this.truckMeshGroup.add(glassMesh);
+
+    // Roof Spoiler Deflector
+    const roofGeo = new THREE.BoxGeometry(1.4, 0.4, 1.0);
+    const roofMat = new THREE.MeshStandardMaterial({ color: 0x0077aa, roughness: 0.3 });
+    const roofMesh = new THREE.Mesh(roofGeo, roofMat);
+    roofMesh.position.set(0, 1.7, 1.1);
+    this.truckMeshGroup.add(roofMesh);
+
+    // Cargo Container / Heavy Body
+    const cargoGeo = new THREE.BoxGeometry(1.55, 1.5, 2.5);
+    const cargoMat = new THREE.MeshStandardMaterial({ color: 0x0e1726, roughness: 0.5, metalness: 0.5 });
+    const cargoMesh = new THREE.Mesh(cargoGeo, cargoMat);
+    cargoMesh.position.set(0, 0.7, -0.8);
+    this.truckMeshGroup.add(cargoMesh);
+
+    // Dual Wheel Assemblies (6 Wheels)
+    const wheelGeo = new THREE.CylinderGeometry(0.4, 0.4, 0.35, 24);
+    const wheelMat = new THREE.MeshStandardMaterial({ color: 0x111111, roughness: 0.8 });
+    wheelGeo.rotateZ(Math.PI / 2);
+
+    const wheelPositions = [
+      [-0.85, -0.4, 1.2], [0.85, -0.4, 1.2],  // Front Steer Axle
+      [-0.85, -0.4, -0.5], [0.85, -0.4, -0.5], // Drive Axle
+      [-0.85, -0.4, -1.4], [0.85, -0.4, -1.4]  // Tag Axle
+    ];
+
+    wheelPositions.forEach(pos => {
+      const wMesh = new THREE.Mesh(wheelGeo, wheelMat);
+      wMesh.position.set(pos[0], pos[1], pos[2]);
+      this.truckMeshGroup.add(wMesh);
+    });
+
+    // Glowing LED Headlights
+    const lightGeo = new THREE.BoxGeometry(0.3, 0.15, 0.1);
+    const lightMat = new THREE.MeshBasicMaterial({ color: 0x00e676 });
+    const lightL = new THREE.Mesh(lightGeo, lightMat);
+    lightL.position.set(-0.55, 0.2, 1.91);
+    const lightR = new THREE.Mesh(lightGeo, lightMat);
+    lightR.position.set(0.55, 0.2, 1.91);
+    this.truckMeshGroup.add(lightL);
+    this.truckMeshGroup.add(lightR);
+
+    this.scene.add(this.truckMeshGroup);
+
+    this.targetPitch = data.pitch || 0;
+    this.targetRoll = data.roll || 0;
+    this.targetYaw = data.yaw || 0;
+
+    // 5. Render Loop
+    const animate = () => {
+      this.animFrameId = requestAnimationFrame(animate);
+
+      if (this.truckMeshGroup) {
+        // Smoothly interpolate rotation to match MPU6050 IMU Pitch, Roll, Yaw
+        const targetX = THREE.MathUtils.degToRad(this.targetPitch);
+        const targetZ = THREE.MathUtils.degToRad(-this.targetRoll);
+        const targetY = THREE.MathUtils.degToRad(this.targetYaw);
+
+        this.truckMeshGroup.rotation.x += (targetX - this.truckMeshGroup.rotation.x) * 0.1;
+        this.truckMeshGroup.rotation.z += (targetZ - this.truckMeshGroup.rotation.z) * 0.1;
+        this.truckMeshGroup.rotation.y += (targetY - this.truckMeshGroup.rotation.y) * 0.1;
+      }
+
+      this.renderer.render(this.scene, this.camera);
+    };
+
+    animate();
+  }
+
+  update3DOrientation(pitch, roll, yaw) {
+    this.targetPitch = pitch || 0;
+    this.targetRoll = roll || 0;
+    this.targetYaw = yaw || 0;
   }
 
   drawScoreGauge(score, color) {
     const canvas = document.getElementById('driving-score-gauge');
     if (!canvas) return;
     const ctx = canvas.getContext('2d');
-    canvas.width = canvas.clientWidth || 180;
-    canvas.height = canvas.clientHeight || 180;
+    canvas.width = canvas.clientWidth || 110;
+    canvas.height = canvas.clientHeight || 110;
     ctx.clearRect(0, 0, canvas.width, canvas.height);
 
     const centerX = canvas.width / 2;
     const centerY = canvas.height / 2;
-    const radius = Math.min(centerX, centerY) - 16;
+    const radius = Math.min(centerX, centerY) - 10;
     const startAngle = 0.75 * Math.PI;
     const endAngle = 2.25 * Math.PI;
 
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-    ctx.lineWidth = 14;
+    ctx.lineWidth = 10;
     ctx.strokeStyle = 'rgba(255, 255, 255, 0.08)';
     ctx.lineCap = 'round';
     ctx.stroke();
@@ -258,88 +347,67 @@ class DynamicsComponent {
     const currentAngle = startAngle + (score / 100) * (endAngle - startAngle);
     ctx.beginPath();
     ctx.arc(centerX, centerY, radius, startAngle, currentAngle);
-    ctx.lineWidth = 14;
+    ctx.lineWidth = 10;
     ctx.strokeStyle = color;
     ctx.lineCap = 'round';
     ctx.stroke();
   }
 
-  renderCharts(data) {
+  render1MinAccelChart(data) {
     if (typeof Chart === 'undefined') return;
 
-    const labels = data.history ? data.history.timestamps : ['10:00', '10:05', '10:10'];
+    const ctxAccel = document.getElementById('chart-accel-1min');
+    if (!ctxAccel) return;
+    if (this.accelChart) this.accelChart.destroy();
 
-    const ctxSpeed = document.getElementById('chart-speed');
-    if (ctxSpeed) {
-      if (this.speedChart) this.speedChart.destroy();
-      this.speedChart = new Chart(ctxSpeed, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Speed (km/h)',
-            data: data.history ? data.history.speed : [75, 78, data.speed],
-            borderColor: '#00d2ff',
-            backgroundColor: 'rgba(0, 210, 255, 0.1)',
-            fill: true,
-            tension: 0.3,
-            borderWidth: 2,
-            pointRadius: 0
-          }]
+    // 1-Minute Interval Timestamps
+    const oneMinLabels = ['10:00', '10:01', '10:02', '10:03', '10:04', '10:05'];
+    const accelData = [0.12, 0.25, 0.18, -0.35, 0.05, data.acceleration || 0.15];
+
+    this.accelChart = new Chart(ctxAccel, {
+      type: 'line',
+      data: {
+        labels: oneMinLabels,
+        datasets: [{
+          label: 'Longitudinal Acceleration (m/s²)',
+          data: accelData,
+          borderColor: '#3a86ff',
+          backgroundColor: 'rgba(58, 134, 255, 0.12)',
+          fill: true,
+          tension: 0.3,
+          borderWidth: 2.5,
+          pointRadius: 4,
+          pointBackgroundColor: '#00d2ff'
+        }]
+      },
+      options: {
+        responsive: true,
+        maintainAspectRatio: false,
+        plugins: {
+          legend: { display: false }
         },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a99ad', font: { size: 11 } } },
-            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a99ad', font: { size: 11 } }, min: 0, max: 110 }
+        scales: {
+          x: { 
+            grid: { color: 'rgba(255,255,255,0.05)' }, 
+            ticks: { color: '#8a99ad', font: { size: 12 } },
+            title: { display: true, text: 'Time (1-Minute Intervals)', color: '#5c6b80', font: { size: 11 } }
+          },
+          y: { 
+            grid: { color: 'rgba(255,255,255,0.05)' }, 
+            ticks: { color: '#8a99ad', font: { size: 11 } }, 
+            min: -2.5, 
+            max: 2.5,
+            title: { display: true, text: 'Acceleration (m/s²)', color: '#5c6b80', font: { size: 11 } }
           }
         }
-      });
-    }
-
-    const ctxAccel = document.getElementById('chart-accel');
-    if (ctxAccel) {
-      if (this.accelChart) this.accelChart.destroy();
-      this.accelChart = new Chart(ctxAccel, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [{
-            label: 'Acceleration (m/s²)',
-            data: data.history ? data.history.acceleration : [0.1, 0.15, data.acceleration],
-            borderColor: '#3a86ff',
-            backgroundColor: 'rgba(58, 134, 255, 0.1)',
-            fill: true,
-            tension: 0.2,
-            borderWidth: 2,
-            pointRadius: 0
-          }]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { display: false } },
-          scales: {
-            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a99ad', font: { size: 11 } } },
-            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a99ad', font: { size: 11 } }, min: -3, max: 3 }
-          }
-        }
-      });
-    }
+      }
+    });
   }
 
-  updateCharts(data) {
-    if (!data.history) return;
-    if (this.speedChart) {
-      this.speedChart.data.labels = data.history.timestamps;
-      this.speedChart.data.datasets[0].data = data.history.speed;
-      this.speedChart.update('none');
-    }
+  update1MinAccelChart(data) {
     if (this.accelChart) {
-      this.accelChart.data.labels = data.history.timestamps;
-      this.accelChart.data.datasets[0].data = data.history.acceleration;
+      const currentData = this.accelChart.data.datasets[0].data;
+      currentData[currentData.length - 1] = data.acceleration;
       this.accelChart.update('none');
     }
   }

@@ -11,10 +11,11 @@
   <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
 
-  <!-- Leaflet CSS & Chart.js -->
+  <!-- Leaflet CSS, Chart.js & Three.js WebGL Engine -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
   <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
   <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+  <script src="https://cdnjs.cloudflare.com/ajax/libs/three.js/r128/three.min.js"></script>
 
   <!-- Custom Industrial Dark Automotive CSS -->
   <link rel="stylesheet" href="css/styles.css">
@@ -43,33 +44,29 @@
           <i class="fa-solid fa-gauge-high"></i>
           <span>2. Truck Dynamics</span>
         </a>
-        <a class="nav-item" data-view="tilt">
-          <i class="fa-solid fa-compass-drafting"></i>
-          <span>3. Tilt Compensation</span>
-        </a>
         <a class="nav-item" data-view="fuel">
           <i class="fa-solid fa-gas-pump"></i>
-          <span>4. Fuel Monitoring</span>
+          <span>3. Fuel Monitoring</span>
         </a>
         <a class="nav-item" data-view="tpms">
           <i class="fa-solid fa-compact-disc"></i>
-          <span>5. Tyre Pressure</span>
+          <span>4. Tyre Pressure</span>
         </a>
         <a class="nav-item" data-view="cameras">
           <i class="fa-solid fa-video"></i>
-          <span>6. Cameras</span>
+          <span>5. Cameras</span>
         </a>
         <a class="nav-item" data-view="battery">
           <i class="fa-solid fa-battery-three-quarters"></i>
-          <span>7. Battery</span>
+          <span>6. Battery</span>
         </a>
         <a class="nav-item" data-view="fleet">
           <i class="fa-solid fa-truck-fleet"></i>
-          <span>8. Fleet Management</span>
+          <span>7. Fleet Management</span>
         </a>
         <a class="nav-item" data-view="maintenance">
           <i class="fa-solid fa-wrench"></i>
-          <span>9. Predictive Maintenance</span>
+          <span>8. Predictive Maintenance</span>
         </a>
       </nav>
 
@@ -139,7 +136,6 @@
       <main class="content-area">
         <div id="view-overview" class="page-view active"></div>
         <div id="view-dynamics" class="page-view"></div>
-        <div id="view-tilt" class="page-view"></div>
         <div id="view-fuel" class="page-view"></div>
         <div id="view-tpms" class="page-view"></div>
         <div id="view-cameras" class="page-view"></div>
@@ -220,7 +216,6 @@
   <script src="js/simulation.js"></script>
   <script src="js/components/overview.js"></script>
   <script src="js/components/dynamics.js"></script>
-  <script src="js/components/tilt.js"></script>
   <script src="js/components/fuel.js"></script>
   <script src="js/components/tpms.js"></script>
   <script src="js/components/cameras.js"></script>

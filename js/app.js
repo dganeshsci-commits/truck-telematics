@@ -13,7 +13,6 @@ class TelematicsApp {
     this.components = {
       overview: new OverviewComponent(),
       dynamics: new DynamicsComponent(),
-      tilt: new TiltComponent(),
       fuel: new FuelComponent(),
       tpms: new TPMSComponent(),
       cameras: new CamerasComponent(),
