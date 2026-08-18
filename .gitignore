@@ -1,0 +1,14 @@
+# Logs and temp profile data
+*.log
+tmp_profile/
+rendered_dom.html
+test_all_slides.py
+page_screenshot.png
+all_slides_ok.png
+dashboard_screenshot.png
+
+# OS & IDE files
+.DS_Store
+Thumbs.db
+.vscode/
+.idea/
