@@ -9,7 +9,7 @@ class TelematicsApp {
     this.currentView = 'overview';
     this.currentData = null;
     this.fleetData = [];
-    this.currentUserRole = 'admin'; // 'admin' or 'user'
+    this.currentUserRole = null; // 'admin' or 'user'
 
     this.components = {
       overview: new OverviewComponent(),
@@ -28,6 +28,8 @@ class TelematicsApp {
     this.bindNavigation();
     this.bindVehicleSelector();
     this.startClock();
+    
+    // Check authentication status
     this.checkAuthStatus();
 
     // Subscribe to multi-vehicle telemetry engine ticks
@@ -54,11 +56,9 @@ class TelematicsApp {
       this.toggleAuthModal(false);
       this.updateUserRoleHeaderBadge();
     } else {
-      // Default auto-login as Admin for seamless UX
-      this.currentUserRole = 'admin';
-      sessionStorage.setItem('telematicsRole', 'admin');
-      this.toggleAuthModal(false);
-      this.updateUserRoleHeaderBadge();
+      // Force Login Gateway Modal on first startup!
+      this.currentUserRole = null;
+      this.toggleAuthModal(true);
     }
   }
 
@@ -91,6 +91,11 @@ class TelematicsApp {
   }
 
   showLoginModal() {
+    sessionStorage.removeItem('telematicsRole');
+    const passwordInput = document.getElementById('auth-password-input');
+    if (passwordInput) passwordInput.value = '';
+    const errorMsg = document.getElementById('auth-error-msg');
+    if (errorMsg) errorMsg.style.display = 'none';
     this.toggleAuthModal(true);
   }
 
@@ -106,8 +111,10 @@ class TelematicsApp {
     if (badgeText) {
       if (this.currentUserRole === 'admin') {
         badgeText.innerHTML = `User: <strong>Admin (Pridas)</strong>`;
-      } else {
+      } else if (this.currentUserRole === 'user') {
         badgeText.innerHTML = `User: <strong>Operator (View Only)</strong>`;
+      } else {
+        badgeText.innerHTML = `User: <strong>Not Logged In</strong>`;
       }
     }
   }
@@ -142,6 +149,13 @@ class TelematicsApp {
       if (selectVeh) selectVeh.value = vehicleId;
 
       this.updateHeaderSummary();
+
+      // Force clean full re-render when changing trucks so all values across all slides immediately update!
+      const targetContainer = document.getElementById(`view-${this.currentView}`);
+      if (targetContainer) {
+        targetContainer.innerHTML = '';
+      }
+
       this.renderCurrentView();
     }
   }
