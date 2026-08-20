@@ -1,9 +1,8 @@
 /**
  * Slide 4: TPMS Tyre Pressure Component
  * Features:
- * 1. Embedded Top View Volvo FH Truck Chassis & Wheel Sensor Layout
- * 2. Minimum Safety Threshold Alert Policy (<95 PSI)
- * (Graphs removed per user request for clean chassis layout focus)
+ * 1. Enlarged Fitted Top View Volvo FH Truck Chassis & Wheel Sensor Layout
+ * 2. Reduced & Compact Minimum Safety Threshold Alert Logic (<95 PSI)
  */
 
 class TPMSComponent {
@@ -17,7 +16,7 @@ class TPMSComponent {
     }
 
     container.innerHTML = `
-      <div class="page-title-row" style="margin-bottom: 24px;">
+      <div class="page-title-row" style="margin-bottom: 20px;">
         <div>
           <h2 style="font-size: 22px;"><i class="fa-solid fa-compact-disc"></i> 4. Tyre Pressure & Top View Telematics</h2>
           <div class="page-subtitle" style="font-size: 14px;">Real-time 433 MHz RF sensor telemetry with minimum threshold alert triggers</div>
@@ -34,16 +33,16 @@ class TPMSComponent {
         ${this.renderAlertBannerHTML(activePressureAlerts)}
       </div>
 
-      <!-- Top View Truck & Tyre Layout Grid -->
+      <!-- Top View Truck & Tyre Layout Grid (Expanded 8-col / 4-col split for large fitted top view image) -->
       <div class="grid-container grid-cols-12">
-        <div class="card span-7" style="padding: 20px;">
+        <div class="card span-8" style="padding: 20px;">
           <div class="card-header" style="margin-bottom: 16px;">
             <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-truck-monster"></i> Top View Volvo FH Truck Chassis & Wheel Layout</span>
             <span class="card-tag sensor">433 MHz RF TPMS</span>
           </div>
 
           <div class="tpms-layout" style="padding: 10px 0;">
-            <div class="truck-axle-grid" style="grid-template-columns: 1fr 160px 1fr; gap: 20px; align-items: center;">
+            <div class="truck-axle-grid" style="grid-template-columns: 1fr 240px 1fr; gap: 24px; align-items: center;">
               <!-- Left Wheels Column -->
               <div style="display: flex; flex-direction: column; gap: 24px;" id="tpms-left-wheels">
                 ${this.renderTyreCard(tyres[0] || { pos: 'Front Left', press: 105, temp: 42, id: 'FL' })}
@@ -51,9 +50,9 @@ class TPMSComponent {
                 ${this.renderTyreCard(tyres[3] || { pos: 'Rear Left (Outer)', press: 106, temp: 43, id: 'RL2' })}
               </div>
 
-              <!-- Embedded Top View Image Asset of Volvo FH Truck -->
+              <!-- Enlarged Fitted Top View Image Asset of Volvo FH Truck -->
               <div style="
-                height: 500px;
+                height: 560px;
                 background: rgba(0, 0, 0, 0.6);
                 border: 1px solid var(--border-color);
                 border-radius: var(--radius-lg);
@@ -61,8 +60,9 @@ class TPMSComponent {
                 flex-direction: column;
                 align-items: center;
                 justify-content: space-between;
-                padding: 14px 6px;
+                padding: 16px 8px;
                 position: relative;
+                box-shadow: inset 0 0 20px rgba(0, 210, 255, 0.08);
               ">
                 <div style="font-weight: 800; color: var(--primary); font-size: 11px; text-transform: uppercase; letter-spacing: 1px;">
                   TOP VIEW FRONT
@@ -71,7 +71,7 @@ class TPMSComponent {
                 <img 
                   src="assets/volvo_truck_top_view.png" 
                   alt="Volvo FH Truck Top View Schematic" 
-                  style="max-height: 420px; width: 100%; object-fit: contain; filter: drop-shadow(0 0 12px rgba(0, 210, 255, 0.5));"
+                  style="height: 480px; width: 100%; object-fit: contain; filter: drop-shadow(0 0 16px rgba(0, 210, 255, 0.6));"
                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                 />
 
@@ -95,33 +95,32 @@ class TPMSComponent {
           </div>
         </div>
 
-        <!-- Minimum Threshold Alert Policy Card -->
-        <div class="card span-5" style="padding: 20px; display: flex; flex-direction: column; justify-content: space-between;">
+        <!-- Reduced & Compact Minimum Pressure Alert Logic Card -->
+        <div class="card span-4" style="padding: 18px; display: flex; flex-direction: column; justify-content: space-between;">
           <div>
-            <div class="card-header" style="margin-bottom: 16px;">
-              <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-shield-halved"></i> Minimum Pressure Alert Logic</span>
-              <span class="card-tag ai">ALERT RULE</span>
+            <div class="card-header" style="margin-bottom: 14px;">
+              <span class="card-title" style="font-size: 14px;"><i class="fa-solid fa-shield-halved"></i> Pressure Alert Logic</span>
+              <span class="card-tag ai" style="font-size: 9px; padding: 1px 6px;">POLICY</span>
             </div>
 
-            <div style="display: flex; flex-direction: column; gap: 16px; margin-top: 10px;">
-              <div style="background: rgba(0,230,118,0.08); border: 1px solid rgba(0,230,118,0.3); padding: 16px; border-radius: var(--radius-md);">
-                <div style="font-size: 13px; font-weight: 700; color: var(--success);">Normal Cold Pressure Baseline</div>
-                <div style="font-size: 24px; font-weight: 900; color: #fff; margin-top: 2px;">105.0 PSI</div>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 4px;">Standard commercial Volvo heavy-duty inflation level</div>
+            <div style="display: flex; flex-direction: column; gap: 12px; margin-top: 6px;">
+              <div style="background: rgba(0,230,118,0.06); border: 1px solid rgba(0,230,118,0.25); padding: 12px; border-radius: var(--radius-md);">
+                <div style="font-size: 11px; font-weight: 700; color: var(--success);">Normal Baseline</div>
+                <div style="font-size: 20px; font-weight: 800; color: #fff; margin-top: 1px;">105.0 PSI</div>
               </div>
 
-              <div style="background: rgba(255,61,113,0.1); border: 1px solid rgba(255,61,113,0.4); padding: 16px; border-radius: var(--radius-md);">
-                <div style="font-size: 13px; font-weight: 700; color: var(--danger);">Minimum Safety Pressure Threshold</div>
-                <div style="font-size: 20px; color: #fff; font-weight: 800; margin-top: 2px;">95.0 PSI</div>
-                <div style="font-size: 12px; color: var(--text-muted); margin-top: 6px; line-height: 1.5;">
-                  System triggers acoustic & telematics alert <strong>ONLY when pressure drops below 95.0 PSI</strong> or when a rapid leak occurs.
+              <div style="background: rgba(255,61,113,0.08); border: 1px solid rgba(255,61,113,0.3); padding: 12px; border-radius: var(--radius-md);">
+                <div style="font-size: 11px; font-weight: 700; color: var(--danger);">Min Threshold</div>
+                <div style="font-size: 20px; color: #fff; font-weight: 800; margin-top: 1px;">95.0 PSI</div>
+                <div style="font-size: 11px; color: var(--text-muted); margin-top: 4px; line-height: 1.4;">
+                  Triggers alert when pressure drops below <strong>95.0 PSI</strong>.
                 </div>
               </div>
             </div>
           </div>
 
-          <div style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: var(--radius-md); padding: 14px; font-size: 12px; color: var(--text-muted); margin-top: 16px;">
-            <i class="fa-solid fa-microchip" style="color:var(--primary);"></i> 433 MHz RF receivers update wheel pressure & temp at 1 Hz intervals.
+          <div style="background: rgba(0, 210, 255, 0.05); border: 1px solid rgba(0, 210, 255, 0.2); border-radius: var(--radius-md); padding: 10px 12px; font-size: 11px; color: var(--text-muted); margin-top: 14px;">
+            <i class="fa-solid fa-microchip" style="color:var(--primary);"></i> 433 MHz RF update rate: 1 Hz.
           </div>
         </div>
       </div>
@@ -131,22 +130,22 @@ class TPMSComponent {
   renderAlertBannerHTML(activePressureAlerts) {
     if (activePressureAlerts.length > 0) {
       return `
-        <div class="alert-banner" style="margin-bottom: 24px; padding: 16px 24px;">
+        <div class="alert-banner" style="margin-bottom: 20px; padding: 14px 20px;">
           <div class="alert-banner-content">
-            <i class="fa-solid fa-triangle-exclamation" style="font-size: 24px;"></i>
+            <i class="fa-solid fa-triangle-exclamation" style="font-size: 22px;"></i>
             <div class="alert-banner-text">
-              <h3 style="font-size: 16px;">LOW TYRE PRESSURE ALERT TRIGGERED</h3>
-              <p style="font-size: 13px;">Minimum safety pressure threshold (95.0 PSI) breached on ${activePressureAlerts.map(t => `${t.pos} (${t.press.toFixed(1)} PSI)`).join(', ')}. Action required.</p>
+              <h3 style="font-size: 15px;">LOW TYRE PRESSURE ALERT TRIGGERED</h3>
+              <p style="font-size: 12px;">Minimum safety pressure threshold (95.0 PSI) breached on ${activePressureAlerts.map(t => `${t.pos} (${t.press.toFixed(1)} PSI)`).join(', ')}. Action required.</p>
             </div>
           </div>
-          <button class="sim-btn active" style="padding: 8px 16px; font-size: 12px;" onclick="window.telemetryEngine.resetAllTriggers()">Clear Alert</button>
+          <button class="sim-btn active" style="padding: 6px 14px; font-size: 12px;" onclick="window.telemetryEngine.resetAllTriggers()">Clear Alert</button>
         </div>
       `;
     } else {
       return `
-        <div class="card" style="background: rgba(0, 230, 118, 0.05); border: 1px solid rgba(0, 230, 118, 0.25); margin-bottom: 24px; padding: 16px 24px;">
-          <div style="display: flex; align-items: center; gap: 14px; font-size: 14px; color: var(--success); font-weight: 700;">
-            <i class="fa-solid fa-circle-check" style="font-size: 22px;"></i>
+        <div class="card" style="background: rgba(0, 230, 118, 0.05); border: 1px solid rgba(0, 230, 118, 0.25); margin-bottom: 20px; padding: 12px 20px;">
+          <div style="display: flex; align-items: center; gap: 12px; font-size: 13px; color: var(--success); font-weight: 700;">
+            <i class="fa-solid fa-circle-check" style="font-size: 20px;"></i>
             All 6 tyre pressures are operating above minimum threshold (95.0 PSI). Chassis telemetry nominal.
           </div>
         </div>
