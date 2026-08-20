@@ -1,7 +1,7 @@
 /**
  * AI Telematics Application Controller
  * Handles Navigation, Views Switching, Multi-Vehicle State Binding,
- * Dropdown Handlers for Drivers & Locations, and Centralized Alert Popup Modals.
+ * Authentication Gateway (User & Admin Passwords), Dropdown Handlers, and Alert Modals.
  */
 
 class TelematicsApp {
@@ -9,6 +9,7 @@ class TelematicsApp {
     this.currentView = 'overview';
     this.currentData = null;
     this.fleetData = [];
+    this.currentUserRole = 'admin'; // 'admin' or 'user'
 
     this.components = {
       overview: new OverviewComponent(),
@@ -27,6 +28,7 @@ class TelematicsApp {
     this.bindNavigation();
     this.bindVehicleSelector();
     this.startClock();
+    this.checkAuthStatus();
 
     // Subscribe to multi-vehicle telemetry engine ticks
     if (window.telemetryEngine) {
@@ -45,50 +47,116 @@ class TelematicsApp {
     }
   }
 
+  checkAuthStatus() {
+    const savedRole = sessionStorage.getItem('telematicsRole');
+    if (savedRole) {
+      this.currentUserRole = savedRole;
+      this.toggleAuthModal(false);
+      this.updateUserRoleHeaderBadge();
+    } else {
+      // Default auto-login as Admin for seamless UX
+      this.currentUserRole = 'admin';
+      sessionStorage.setItem('telematicsRole', 'admin');
+      this.toggleAuthModal(false);
+      this.updateUserRoleHeaderBadge();
+    }
+  }
+
+  handleDashboardLogin() {
+    const roleSelect = document.getElementById('auth-role-select');
+    const passwordInput = document.getElementById('auth-password-input');
+    const errorMsg = document.getElementById('auth-error-msg');
+
+    const selectedRole = roleSelect ? roleSelect.value : 'admin';
+    const password = passwordInput ? passwordInput.value.trim() : '';
+
+    let isValid = false;
+
+    if (selectedRole === 'admin' && password === 'admin123') {
+      isValid = true;
+    } else if (selectedRole === 'user' && password === 'user123') {
+      isValid = true;
+    }
+
+    if (isValid) {
+      this.currentUserRole = selectedRole;
+      sessionStorage.setItem('telematicsRole', selectedRole);
+      if (errorMsg) errorMsg.style.display = 'none';
+      this.toggleAuthModal(false);
+      this.updateUserRoleHeaderBadge();
+      if (passwordInput) passwordInput.value = '';
+    } else {
+      if (errorMsg) errorMsg.style.display = 'block';
+    }
+  }
+
+  showLoginModal() {
+    this.toggleAuthModal(true);
+  }
+
+  toggleAuthModal(show) {
+    const modal = document.getElementById('auth-modal');
+    if (modal) {
+      modal.style.display = show ? 'flex' : 'none';
+    }
+  }
+
+  updateUserRoleHeaderBadge() {
+    const badgeText = document.getElementById('header-user-role-text');
+    if (badgeText) {
+      if (this.currentUserRole === 'admin') {
+        badgeText.innerHTML = `User: <strong>Admin (Pridas)</strong>`;
+      } else {
+        badgeText.innerHTML = `User: <strong>Operator (View Only)</strong>`;
+      }
+    }
+  }
+
   bindNavigation() {
     const navItems = document.querySelectorAll('.nav-item[data-view]');
     navItems.forEach(item => {
       item.addEventListener('click', (e) => {
         e.preventDefault();
-        const targetView = item.getAttribute('data-view');
-        this.switchView(targetView);
+        const view = item.getAttribute('data-view');
+        this.switchView(view);
       });
     });
   }
 
   bindVehicleSelector() {
-    const selector = document.getElementById('select-vehicle');
-    if (selector) {
-      selector.addEventListener('change', (e) => {
-        const vehicleId = e.target.value;
-        this.selectVehicle(vehicleId);
+    const selectVeh = document.getElementById('select-vehicle');
+    if (selectVeh) {
+      selectVeh.addEventListener('change', (e) => {
+        this.selectVehicle(e.target.value);
       });
+    }
+  }
+
+  selectVehicle(vehicleId) {
+    if (window.telemetryEngine) {
+      window.telemetryEngine.setActiveVehicle(vehicleId);
+      this.currentData = window.telemetryEngine.getActiveVehicleData();
+      this.fleetData = window.telemetryEngine.getFleetList();
+
+      const selectVeh = document.getElementById('select-vehicle');
+      if (selectVeh) selectVeh.value = vehicleId;
+
+      this.updateHeaderSummary();
+      this.renderCurrentView();
     }
   }
 
   switchView(viewName) {
     if (!this.components[viewName]) return;
-
     this.currentView = viewName;
 
-    // Update sidebar navigation active classes
-    const navItems = document.querySelectorAll('.nav-item');
-    navItems.forEach(item => {
-      if (item.getAttribute('data-view') === viewName) {
-        item.classList.add('active');
-      } else {
-        item.classList.remove('active');
-      }
-    });
+    document.querySelectorAll('.nav-item').forEach(el => el.classList.remove('active'));
+    const activeNav = document.querySelector(`.nav-item[data-view="${viewName}"]`);
+    if (activeNav) activeNav.classList.add('active');
 
-    // Update page container views
-    const views = document.querySelectorAll('.page-view');
-    views.forEach(v => v.classList.remove('active'));
-
-    const targetContainer = document.getElementById(`view-${viewName}`);
-    if (targetContainer) {
-      targetContainer.classList.add('active');
-    }
+    document.querySelectorAll('.page-view').forEach(el => el.classList.remove('active'));
+    const targetView = document.getElementById(`view-${viewName}`);
+    if (targetView) targetView.classList.add('active');
 
     this.renderCurrentView();
   }
@@ -96,179 +164,130 @@ class TelematicsApp {
   renderCurrentView() {
     if (!this.currentData) return;
 
+    const targetContainer = document.getElementById(`view-${this.currentView}`);
+    if (!targetContainer) return;
+
     const comp = this.components[this.currentView];
-    const activePanel = document.getElementById(`view-${this.currentView}`);
-
-    if (comp && activePanel) {
+    if (comp && typeof comp.render === 'function') {
       if (this.currentView === 'fleet') {
-        comp.render(activePanel, this.currentData, this.fleetData, this.getAlertsList());
+        comp.render(targetContainer, this.currentData, this.fleetData, this.getAlertsList());
       } else if (this.currentView === 'alerts') {
-        comp.render(activePanel, this.getAlertsList());
+        comp.render(targetContainer, this.getAlertsList());
       } else {
-        comp.render(activePanel, this.currentData);
+        comp.render(targetContainer, this.currentData);
       }
-    }
-  }
-
-  selectVehicle(vehicleId) {
-    if (window.telemetryEngine) {
-      window.telemetryEngine.selectVehicle(vehicleId);
-    }
-
-    const vehSelect = document.getElementById('select-vehicle');
-    if (vehSelect) vehSelect.value = vehicleId;
-
-    this.renderCurrentView();
-  }
-
-  updateVehicleDropdownOptions(fleet) {
-    const vehSelect = document.getElementById('select-vehicle');
-    if (!vehSelect || !fleet) return;
-
-    const currentSelected = window.telemetryEngine ? window.telemetryEngine.activeVehicleId : 'VOLVO-FH-001';
-
-    if (vehSelect.options.length !== fleet.length) {
-      vehSelect.innerHTML = fleet.map(v => `
-        <option value="${v.id}" ${v.id === currentSelected ? 'selected' : ''}>${v.id} (${v.driver})</option>
-      `).join('');
-    } else {
-      vehSelect.value = currentSelected;
     }
   }
 
   onDriverSelect(val) {
-    if (!this.currentData) return;
     if (val === 'ADD_NEW_DRIVER') {
-      const newDriver = prompt('Enter New Driver Full Name:');
-      if (newDriver && newDriver.trim()) {
-        const cleanName = newDriver.trim();
-        if (window.telemetryEngine) window.telemetryEngine.addCustomDriver(cleanName);
-        this.currentData.driver = cleanName;
-        window.telemetryEngine.notify();
-      } else {
-        this.renderCurrentView();
-      }
-    } else {
-      this.currentData.driver = val;
-      if (window.telemetryEngine) window.telemetryEngine.notify();
+      this.toggleAddDriverModal(true);
+      return;
+    }
+    if (window.telemetryEngine && this.currentData) {
+      window.telemetryEngine.updateVehicleDriver(this.currentData.vehicleId, val);
     }
   }
 
   onStartLocSelect(val) {
-    if (!this.currentData) return;
     if (val === 'ADD_NEW_START') {
-      const newLoc = prompt('Enter New Start Location (Pick):');
-      if (newLoc && newLoc.trim()) {
-        const cleanLoc = newLoc.trim();
-        if (window.telemetryEngine) window.telemetryEngine.addCustomLocation(cleanLoc);
-        this.currentData.startLocation = cleanLoc;
-        window.telemetryEngine.notify();
-      } else {
-        this.renderCurrentView();
+      const customLoc = prompt('Enter New Start Pick Location Name:');
+      if (customLoc && customLoc.trim()) {
+        window.telemetryEngine.addCustomLocation(customLoc.trim());
+        window.telemetryEngine.updateVehicleStartLocation(this.currentData.vehicleId, customLoc.trim());
       }
-    } else {
-      this.currentData.startLocation = val;
-      if (window.telemetryEngine) window.telemetryEngine.notify();
+      return;
+    }
+    if (window.telemetryEngine && this.currentData) {
+      window.telemetryEngine.updateVehicleStartLocation(this.currentData.vehicleId, val);
     }
   }
 
   onDestLocSelect(val) {
-    if (!this.currentData) return;
     if (val === 'ADD_NEW_DEST') {
-      const newLoc = prompt('Enter New Drop Location (Destination):');
-      if (newLoc && newLoc.trim()) {
-        const cleanLoc = newLoc.trim();
-        if (window.telemetryEngine) window.telemetryEngine.addCustomLocation(cleanLoc);
-        this.currentData.destination = cleanLoc;
-        window.telemetryEngine.notify();
-      } else {
-        this.renderCurrentView();
+      const customLoc = prompt('Enter New Drop Destination Location Name:');
+      if (customLoc && customLoc.trim()) {
+        window.telemetryEngine.addCustomLocation(customLoc.trim());
+        window.telemetryEngine.updateVehicleDestination(this.currentData.vehicleId, customLoc.trim());
       }
-    } else {
-      this.currentData.destination = val;
-      if (window.telemetryEngine) window.telemetryEngine.notify();
+      return;
+    }
+    if (window.telemetryEngine && this.currentData) {
+      window.telemetryEngine.updateVehicleDestination(this.currentData.vehicleId, val);
     }
   }
 
-  saveDriverRowDetails(vehicleId, index) {
+  saveDriverRowDetails(vehId, index) {
     const driverInput = document.getElementById(`driver-name-input-${index}`);
     const locInput = document.getElementById(`driver-loc-input-${index}`);
 
-    if (!driverInput) return;
-    const newDriverName = driverInput.value.trim();
+    const newDriver = driverInput ? driverInput.value.trim() : '';
     const newLoc = locInput ? locInput.value.trim() : '';
 
-    if (!newDriverName) return;
-
-    if (window.telemetryEngine && window.telemetryEngine.vehiclesData[vehicleId]) {
-      const v = window.telemetryEngine.vehiclesData[vehicleId];
-      v.driver = newDriverName;
-      if (newLoc) v.locationName = newLoc;
-      window.telemetryEngine.updateFleetArray();
-      window.telemetryEngine.notify();
+    if (window.telemetryEngine) {
+      if (newDriver) window.telemetryEngine.updateVehicleDriver(vehId, newDriver);
+      if (newLoc) window.telemetryEngine.updateVehicleStartLocation(vehId, newLoc);
+      alert(`Updated ${vehId} assignment: Driver "${newDriver}" at "${newLoc}"`);
     }
-
-    alert(`Saved details for ${vehicleId}:\nDriver: ${newDriverName}${newLoc ? `\nLocation: ${newLoc}` : ''}`);
-    if (document.activeElement) document.activeElement.blur();
-    this.renderCurrentView();
   }
 
   toggleAddDriverModal(show) {
     const modal = document.getElementById('add-driver-modal');
-    if (!modal) return;
-
-    if (show) {
-      modal.classList.add('open');
-      modal.style.display = 'flex';
-    } else {
-      modal.classList.remove('open');
-      modal.style.display = 'none';
+    if (modal) {
+      modal.style.display = show ? 'flex' : 'none';
+      if (show) modal.classList.add('open');
+      else modal.classList.remove('open');
     }
   }
 
   submitNewDriverForm() {
     const vehId = document.getElementById('new-veh-id').value.trim();
     const driverName = document.getElementById('new-driver-name').value.trim();
-    const model = document.getElementById('new-veh-model').value.trim();
-    const loc = document.getElementById('new-veh-loc').value.trim();
-    const speed = document.getElementById('new-veh-speed').value;
-    const fuel = document.getElementById('new-veh-fuel').value;
-
-    if (!vehId || !driverName) {
-      alert('Please fill out Vehicle ID and Driver Name!');
-      return;
-    }
+    const model = document.getElementById('new-veh-model').value.trim() || 'Volvo FH 750 Diesel';
+    const location = document.getElementById('new-veh-loc').value.trim() || 'Gothenburg Logistics Hub';
+    const speed = parseFloat(document.getElementById('new-veh-speed').value) || 76;
 
     if (window.telemetryEngine) {
       window.telemetryEngine.addNewVehicle({
-        vehicleId: vehId,
+        id: vehId,
         driver: driverName,
-        model: model || 'Volvo FH 750 Diesel',
-        location: loc || 'Gothenburg Logistics Terminal',
-        speed: speed || 76,
-        fuel: fuel || 85,
-        health: 96
+        model: model,
+        location: location,
+        speed: speed,
+        fuel: 85
       });
-    }
 
-    this.toggleAddDriverModal(false);
-    alert(`Vehicle ${vehId} registered successfully with driver ${driverName}!`);
+      this.toggleAddDriverModal(false);
+      this.selectVehicle(vehId);
+    }
   }
 
   toggleAlertModal(show) {
     const modal = document.getElementById('alerts-modal');
-    const content = document.getElementById('modal-alerts-content');
-
-    if (!modal || !content) return;
-
-    if (show) {
-      this.components.alerts.render(content, this.getAlertsList());
-      modal.classList.add('open');
-      modal.style.display = 'flex';
-    } else {
-      modal.classList.remove('open');
-      modal.style.display = 'none';
+    if (modal) {
+      modal.style.display = show ? 'flex' : 'none';
+      if (show) {
+        modal.classList.add('open');
+        const content = document.getElementById('modal-alerts-content');
+        if (content) {
+          this.components.alerts.render(content, this.getAlertsList());
+        }
+      } else {
+        modal.classList.remove('open');
+      }
     }
+  }
+
+  updateVehicleDropdownOptions(fleet) {
+    const selectVeh = document.getElementById('select-vehicle');
+    if (!selectVeh) return;
+
+    const currentVal = selectVeh.value;
+    selectVeh.innerHTML = fleet.map(v => `
+      <option value="${v.id}" ${v.id === currentVal ? 'selected' : ''}>
+        ${v.id} (${v.driver})
+      </option>
+    `).join('');
   }
 
   updateHeaderSummary() {

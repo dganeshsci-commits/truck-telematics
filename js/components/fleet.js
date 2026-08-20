@@ -1,7 +1,7 @@
 /**
  * Slide 7: Fleet Management Component
- * Driver Assignment, Add New Driver & Vehicle Form Modal + Inline Detail Editing
- * Features: Volvo Heavy Logistics Fleet Management Official Logo Badge
+ * Driver Assignment & Vehicle Registration Overview
+ * Columns: Vehicle ID, Assigned Driver (Editable), Current Location, Speed, Vehicle Health Score
  */
 
 class FleetComponent {
@@ -22,20 +22,16 @@ class FleetComponent {
         </div>
       </div>
 
-      <!-- Fleet Overview Table -->
+      <!-- Fleet Overview Table (Fuel Level, Tyre Status, Route Compliance, Actions REMOVED per user request) -->
       <div class="card custom-table-container">
         <table class="custom-table">
           <thead>
             <tr>
               <th>Vehicle ID</th>
-              <th>Assigned Driver (Editable)</th>
+              <th>Assigned Driver (Editable Name Only)</th>
               <th>Current Location</th>
               <th>Speed</th>
-              <th>Fuel Level</th>
-              <th>Tyre Status</th>
-              <th>Vehicle Health</th>
-              <th>Route Compliance</th>
-              <th>Actions</th>
+              <th>Vehicle Health Score</th>
             </tr>
           </thead>
           <tbody>
@@ -56,7 +52,8 @@ class FleetComponent {
                         id="driver-name-input-${index}" 
                         class="edit-input-field" 
                         value="${currentDriverName}" 
-                        style="width: 140px;"
+                        style="width: 180px; font-weight: 700;"
+                        onchange="window.appInstance.saveDriverRowDetails('${v.id}', ${index})"
                       />
                     </div>
                   </td>
@@ -66,30 +63,12 @@ class FleetComponent {
                       id="driver-loc-input-${index}" 
                       class="edit-input-field" 
                       value="${v.location}" 
-                      style="width: 180px; font-size: 12px;"
+                      style="width: 220px; font-size: 12px;"
+                      onchange="window.appInstance.saveDriverRowDetails('${v.id}', ${index})"
                     />
                   </td>
-                  <td style="font-weight: 700; color: #fff;">${v.speed}</td>
-                  <td style="color: var(--success); font-weight: 700;">${v.fuel}</td>
-                  <td>
-                    <span style="color: ${v.tyre.includes('WARNING') ? 'var(--warning)' : (v.tyre.includes('CRITICAL') ? 'var(--danger)' : 'var(--success)')}; font-weight: 700; font-size: 11px;">
-                      ${v.tyre}
-                    </span>
-                  </td>
-                  <td style="font-weight: 700; color: var(--success);">${v.health}</td>
-                  <td>
-                    <span class="status-badge ${v.route === 'Compliant' ? 'running' : 'offline'}">${v.route}</span>
-                  </td>
-                  <td>
-                    <div style="display: flex; gap: 6px;">
-                      <button class="sim-btn active" style="padding: 4px 8px;" onclick="window.appInstance.saveDriverRowDetails('${v.id}', ${index})">
-                        <i class="fa-solid fa-floppy-disk"></i> Save
-                      </button>
-                      <button class="sim-btn" style="padding: 4px 8px;" onclick="window.appInstance.selectVehicle('${v.id}')">
-                        <i class="fa-solid fa-gauge-high"></i> Select
-                      </button>
-                    </div>
-                  </td>
+                  <td style="font-weight: 700; color: #fff;">${v.speed} km/h</td>
+                  <td style="font-weight: 800; color: var(--success); font-size: 14px;">${v.health}</td>
                 </tr>
               `;
             }).join('')}
