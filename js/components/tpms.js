@@ -1,20 +1,17 @@
 /**
- * Slide 5: TPMS Tyre Pressure Component
- * Embedded Top View Image Asset of Volvo FH Truck Chassis & Wheel Telematics
- * Alert Policy: Gives alert ONLY after pressure changes below minimum safety pressure (<95 PSI)
+ * Slide 4: TPMS Tyre Pressure Component
+ * Features:
+ * 1. Embedded Top View Volvo FH Truck Chassis & Wheel Sensor Layout
+ * 2. Minimum Safety Threshold Alert Policy (<95 PSI)
+ * (Graphs removed per user request for clean chassis layout focus)
  */
 
 class TPMSComponent {
-  constructor() {
-    this.pressChart = null;
-    this.tempChart = null;
-  }
-
   render(container, data) {
     const tyres = data.tpms || [];
     const activePressureAlerts = tyres.filter(t => t.press < 95.0 || t.temp > 65.0 || t.status === 'CRITICAL');
 
-    if (container.querySelector('#chart-tyre-press')) {
+    if (container.querySelector('#tpms-left-wheels')) {
       this.updateInPlace(data, tyres, activePressureAlerts);
       return;
     }
@@ -22,7 +19,7 @@ class TPMSComponent {
     container.innerHTML = `
       <div class="page-title-row" style="margin-bottom: 24px;">
         <div>
-          <h2 style="font-size: 22px;"><i class="fa-solid fa-compact-disc"></i> 5. Tyre Pressure & Top View Telematics</h2>
+          <h2 style="font-size: 22px;"><i class="fa-solid fa-compact-disc"></i> 4. Tyre Pressure & Top View Telematics</h2>
           <div class="page-subtitle" style="font-size: 14px;">Real-time 433 MHz RF sensor telemetry with minimum threshold alert triggers</div>
         </div>
         <div style="display: flex; gap: 10px;">
@@ -38,7 +35,7 @@ class TPMSComponent {
       </div>
 
       <!-- Top View Truck & Tyre Layout Grid -->
-      <div class="grid-container grid-cols-12" style="margin-bottom: 24px;">
+      <div class="grid-container grid-cols-12">
         <div class="card span-7" style="padding: 20px;">
           <div class="card-header" style="margin-bottom: 16px;">
             <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-truck-monster"></i> Top View Volvo FH Truck Chassis & Wheel Layout</span>
@@ -56,7 +53,7 @@ class TPMSComponent {
 
               <!-- Embedded Top View Image Asset of Volvo FH Truck -->
               <div style="
-                height: 480px;
+                height: 500px;
                 background: rgba(0, 0, 0, 0.6);
                 border: 1px solid var(--border-color);
                 border-radius: var(--radius-lg);
@@ -74,7 +71,7 @@ class TPMSComponent {
                 <img 
                   src="assets/volvo_truck_top_view.png" 
                   alt="Volvo FH Truck Top View Schematic" 
-                  style="max-height: 400px; width: 100%; object-fit: contain; filter: drop-shadow(0 0 12px rgba(0, 210, 255, 0.5));"
+                  style="max-height: 420px; width: 100%; object-fit: contain; filter: drop-shadow(0 0 12px rgba(0, 210, 255, 0.5));"
                   onerror="this.style.display='none'; this.nextElementSibling.style.display='flex';"
                 />
 
@@ -128,34 +125,7 @@ class TPMSComponent {
           </div>
         </div>
       </div>
-
-      <!-- Tyre Telematics Analytics Charts -->
-      <div class="grid-container grid-cols-2">
-        <div class="card" style="padding: 20px;">
-          <div class="card-header" style="margin-bottom: 16px;">
-            <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-chart-line"></i> Tyre Pressure vs Time (PSI)</span>
-            <span class="card-tag sensor">REALTIME TPMS</span>
-          </div>
-          <div style="height: 300px; position: relative;">
-            <canvas id="chart-tyre-press"></canvas>
-          </div>
-        </div>
-
-        <div class="card" style="padding: 20px;">
-          <div class="card-header" style="margin-bottom: 16px;">
-            <span class="card-title" style="font-size: 15px;"><i class="fa-solid fa-temperature-three-quarters"></i> Tyre Temperature vs Time (°C)</span>
-            <span class="card-tag sensor">THERMAL SENSORS</span>
-          </div>
-          <div style="height: 300px; position: relative;">
-            <canvas id="chart-tyre-temp"></canvas>
-          </div>
-        </div>
-      </div>
     `;
-
-    setTimeout(() => {
-      this.renderCharts(data);
-    }, 100);
   }
 
   renderAlertBannerHTML(activePressureAlerts) {
@@ -205,27 +175,6 @@ class TPMSComponent {
         ${this.renderTyreCard(tyres[5])}
       `;
     }
-
-    if (data.history) {
-      if (this.pressChart) {
-        this.pressChart.data.labels = data.history.timestamps;
-        if (data.history.tyrePressures) {
-          this.pressChart.data.datasets[0].data = data.history.tyrePressures[0];
-          this.pressChart.data.datasets[1].data = data.history.tyrePressures[1];
-          this.pressChart.data.datasets[2].data = data.history.tyrePressures[2];
-          this.pressChart.data.datasets[3].data = data.history.tyrePressures[5];
-        }
-        this.pressChart.update('none');
-      }
-      if (this.tempChart) {
-        this.tempChart.data.labels = data.history.timestamps;
-        if (data.history.tyreTemps) {
-          this.tempChart.data.datasets[0].data = data.history.tyreTemps[0];
-          this.tempChart.data.datasets[1].data = data.history.tyreTemps[2];
-        }
-        this.tempChart.update('none');
-      }
-    }
   }
 
   renderTyreCard(tyre) {
@@ -251,62 +200,6 @@ class TPMSComponent {
         </div>
       </div>
     `;
-  }
-
-  renderCharts(data) {
-    if (typeof Chart === 'undefined') return;
-
-    const labels = data.history ? data.history.timestamps : ['10:00', '10:05', '10:10'];
-
-    const ctxP = document.getElementById('chart-tyre-press');
-    if (ctxP) {
-      if (this.pressChart) this.pressChart.destroy();
-      this.pressChart = new Chart(ctxP, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [
-            { label: 'Front Left', data: data.history ? data.history.tyrePressures[0] : [105, 105.2], borderColor: '#00d2ff', borderWidth: 2, pointRadius: 0 },
-            { label: 'Front Right', data: data.history ? data.history.tyrePressures[1] : [104, 104.8], borderColor: '#3a86ff', borderWidth: 2, pointRadius: 0 },
-            { label: 'Rear Left (Inner)', data: data.history ? data.history.tyrePressures[2] : [98, 96.4], borderColor: '#ff3d71', borderWidth: 3, pointRadius: 0 },
-            { label: 'Rear Right (Outer)', data: data.history ? data.history.tyrePressures[5] : [105, 105.8], borderColor: '#00e676', borderWidth: 2, pointRadius: 0 }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#8a99ad', font: { size: 11 } } } },
-          scales: {
-            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a99ad', font: { size: 11 } } },
-            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a99ad', font: { size: 11 } }, min: 65, max: 120 }
-          }
-        }
-      });
-    }
-
-    const ctxT = document.getElementById('chart-tyre-temp');
-    if (ctxT) {
-      if (this.tempChart) this.tempChart.destroy();
-      this.tempChart = new Chart(ctxT, {
-        type: 'line',
-        data: {
-          labels: labels,
-          datasets: [
-            { label: 'Front Left', data: data.history ? data.history.tyreTemps[0] : [40, 42.1], borderColor: '#00d2ff', borderWidth: 2, pointRadius: 0 },
-            { label: 'Rear Left (Inner)', data: data.history ? data.history.tyreTemps[2] : [50, 68.2], borderColor: '#ffb300', borderWidth: 3, pointRadius: 0 }
-          ]
-        },
-        options: {
-          responsive: true,
-          maintainAspectRatio: false,
-          plugins: { legend: { labels: { color: '#8a99ad', font: { size: 11 } } } },
-          scales: {
-            x: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a99ad', font: { size: 11 } } },
-            y: { grid: { color: 'rgba(255,255,255,0.05)' }, ticks: { color: '#8a99ad', font: { size: 11 } }, min: 20, max: 90 }
-          }
-        }
-      });
-    }
   }
 }
 
