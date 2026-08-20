@@ -5,7 +5,7 @@
  * 2. Dedicated Tracking Panel (Right Panel):
  *    - Geofencing Zone Status
  *    - Route Deviation & Compliance
- *    - Route Planning & Destination Block (Trip No, Date, Start/End Times, Preset & Custom Driver / Pick & Drop Selectors)
+ *    - Route Planning & Destination Block (Role-based permissions for Driver & Pick/Drop Selectors)
  */
 
 class OverviewComponent {
@@ -19,6 +19,7 @@ class OverviewComponent {
   }
 
   render(container, data) {
+    const isAdmin = window.appInstance && window.appInstance.currentUserRole === 'admin';
     const statusClass = (data.status || 'Running').toLowerCase();
     const defaultLocations = (window.telemetryEngine && window.telemetryEngine.defaultLocations) ? window.telemetryEngine.defaultLocations : [
       'Gothenburg Logistics Hub', 'Stockholm Freight Terminal', 'Malmö Transport Depot', 'Jönköping Cargo Hub'
@@ -140,8 +141,13 @@ class OverviewComponent {
 
           <!-- Section 3: Route Planning & Destination Block -->
           <div style="background: rgba(0, 0, 0, 0.4); border: 1px solid var(--border-color); border-radius: var(--radius-md); padding: 12px; display: flex; flex-direction: column; gap: 10px;">
-            <div style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">
-              <i class="fa-solid fa-map-pin"></i> Route Planning Configuration
+            <div style="display: flex; justify-content: space-between; align-items: center; border-bottom: 1px solid var(--border-color); padding-bottom: 4px;">
+              <div style="font-size: 11px; font-weight: 800; color: var(--text-muted); text-transform: uppercase;">
+                <i class="fa-solid fa-map-pin"></i> Route Planning Configuration
+              </div>
+              <span style="font-size: 10px; color: ${isAdmin ? 'var(--success)' : 'var(--warning)'}; font-weight: 700;">
+                ${isAdmin ? '<i class="fa-solid fa-pen-to-square"></i> Editable' : '<i class="fa-solid fa-lock"></i> Read-Only'}
+              </span>
             </div>
 
             <!-- Trip Header -->
@@ -153,27 +159,27 @@ class OverviewComponent {
             <!-- Dropdown 1: Driver Selection -->
             <div class="edit-input-group">
               <label style="font-size: 10px;"><i class="fa-solid fa-user-gear" style="color: var(--primary);"></i> Driver:</label>
-              <select id="select-driver-name" class="edit-input-field" style="padding: 4px 8px; font-size: 12px;" onchange="window.appInstance.onDriverSelect(this.value)">
+              <select id="select-driver-name" class="edit-input-field" style="padding: 4px 8px; font-size: 12px; ${!isAdmin ? 'opacity: 0.75; cursor: not-allowed;' : ''}" ${!isAdmin ? 'disabled' : ''} onchange="window.appInstance.onDriverSelect(this.value)">
                 ${defaultDrivers.map(d => `<option value="${d}" ${d === data.driver ? 'selected' : ''}>${d}</option>`).join('')}
-                <option value="ADD_NEW_DRIVER" style="color: var(--primary); font-weight: 700;">+ Add New Driver...</option>
+                ${isAdmin ? '<option value="ADD_NEW_DRIVER" style="color: var(--primary); font-weight: 700;">+ Add New Driver...</option>' : ''}
               </select>
             </div>
 
             <!-- Dropdown 2: Start Location (Pick) -->
             <div class="edit-input-group">
               <label style="font-size: 10px;"><i class="fa-solid fa-circle-dot" style="color: var(--success);"></i> Start (Pick):</label>
-              <select id="select-start-loc" class="edit-input-field" style="padding: 4px 8px; font-size: 12px;" onchange="window.appInstance.onStartLocSelect(this.value)">
+              <select id="select-start-loc" class="edit-input-field" style="padding: 4px 8px; font-size: 12px; ${!isAdmin ? 'opacity: 0.75; cursor: not-allowed;' : ''}" ${!isAdmin ? 'disabled' : ''} onchange="window.appInstance.onStartLocSelect(this.value)">
                 ${defaultLocations.map(l => `<option value="${l}" ${l === data.startLocation ? 'selected' : ''}>${l}</option>`).join('')}
-                <option value="ADD_NEW_START" style="color: var(--success); font-weight: 700;">+ Add New Start Location...</option>
+                ${isAdmin ? '<option value="ADD_NEW_START" style="color: var(--success); font-weight: 700;">+ Add New Start Location...</option>' : ''}
               </select>
             </div>
 
             <!-- Dropdown 3: Drop Location (Destination) -->
             <div class="edit-input-group">
               <label style="font-size: 10px;"><i class="fa-solid fa-location-dot" style="color: var(--danger);"></i> Drop (Destination):</label>
-              <select id="select-dest-loc" class="edit-input-field" style="padding: 4px 8px; font-size: 12px;" onchange="window.appInstance.onDestLocSelect(this.value)">
+              <select id="select-dest-loc" class="edit-input-field" style="padding: 4px 8px; font-size: 12px; ${!isAdmin ? 'opacity: 0.75; cursor: not-allowed;' : ''}" ${!isAdmin ? 'disabled' : ''} onchange="window.appInstance.onDestLocSelect(this.value)">
                 ${defaultLocations.map(l => `<option value="${l}" ${l === data.destination ? 'selected' : ''}>${l}</option>`).join('')}
-                <option value="ADD_NEW_DEST" style="color: var(--danger); font-weight: 700;">+ Add New Drop Location...</option>
+                ${isAdmin ? '<option value="ADD_NEW_DEST" style="color: var(--danger); font-weight: 700;">+ Add New Drop Location...</option>' : ''}
               </select>
             </div>
           </div>

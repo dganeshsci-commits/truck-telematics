@@ -489,6 +489,10 @@ class TelemetrySimulationEngine {
     }
   }
 
+  setActiveVehicle(vehicleId) {
+    this.selectVehicle(vehicleId);
+  }
+
   getActiveVehicleData() {
     const v = this.vehiclesData[this.activeVehicleId] || this.vehiclesData['VOLVO-FH-001'];
     v.flags = this.flags;
